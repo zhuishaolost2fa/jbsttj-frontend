@@ -18,6 +18,13 @@ export default defineConfig<'vite'>(async (merge, { command, mode }) => {
     outputRoot: 'dist',
     plugins: ['@tarojs/plugin-html'],
     defineConstants: {
+      // 后端域名优先级：构建期 shell 环境变量（Vercel/CI 注入） > .env 文件 > 代码默认值。
+      // Taro 默认只把 .env 文件里的 TARO_APP_* 变量打进产物，读不到 shell 环境变量，
+      // 因此这里显式取 process.env.TARO_APP_API_ORIGIN 用 Vite define 注入；
+      // 仅在 shell 中存在该变量时才定义，避免覆盖 .env 文件的取值。
+      ...(process.env.TARO_APP_API_ORIGIN
+        ? { 'process.env.TARO_APP_API_ORIGIN': JSON.stringify(process.env.TARO_APP_API_ORIGIN) }
+        : {})
     },
     copy: {
       patterns: [

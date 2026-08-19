@@ -1,0 +1,275 @@
+/* ===== DM 指南导入后的「剧本信息」底部弹层 ===== */
+
+.script-form-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.script-form-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  background: #ffffff;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  .is-open & {
+    transform: translateY(0);
+  }
+}
+
+/* 头部 */
+.sf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #f0f1f5;
+  flex-shrink: 0;
+}
+
+.sf-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.sf-close {
+  font-size: 18px;
+  color: #9aa0ad;
+  padding: 0 4px;
+}
+
+/* 主体滚动区 */
+.sf-body {
+  flex: 1;
+  /* 关键：flex 子项默认 min-height:auto 不会收缩到内容高度以下，
+     不加这行时内容过高会把 footer 挤出 88vh 的 sheet 并被 overflow:hidden 裁掉，
+     导致底部按钮点不到（点到 mask 上反而触发取消）。 */
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 已上传文件条 */
+.sf-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f6f8ff;
+  border: 1px solid #e4e9ff;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.sf-file-icon {
+  font-size: 16px;
+}
+
+.sf-file-name {
+  flex: 1;
+  font-size: 13px;
+  color: #3a3f4b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sf-file-tag {
+  font-size: 11px;
+  color: #3b78ff;
+  background: rgba(59, 120, 255, 0.12);
+  padding: 2px 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* 区块 */
+.sf-section {
+  margin-bottom: 16px;
+}
+
+.sf-label {
+  display: block;
+  font-size: 13px;
+  color: #6b7080;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.sf-required {
+  color: #e54d42;
+}
+
+/* 候选剧本选择 */
+.sf-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sf-candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid #e3e6ee;
+  border-radius: 10px;
+  background: #fafbfd;
+  min-width: 96px;
+
+  &.is-active {
+    border-color: #5b7cfa;
+    background: rgba(91, 124, 250, 0.08);
+  }
+
+  &.sf-candidate-new {
+    justify-content: center;
+  }
+}
+
+.sf-candidate-title {
+  font-size: 14px;
+  color: #2a2e3a;
+  font-weight: 600;
+}
+
+.sf-candidate-meta {
+  font-size: 11px;
+  color: #9aa0ad;
+}
+
+/* 字段 */
+.sf-field {
+  margin-bottom: 14px;
+}
+
+.sf-row {
+  display: flex;
+  gap: 12px;
+}
+
+.sf-col {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 14px;
+}
+
+.sf-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #2a2e3a;
+  background: #f7f8fc;
+  border: 1px solid #eceef3;
+  border-radius: 10px;
+}
+
+.sf-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #2a2e3a;
+  background: #f7f8fc;
+  border: 1px solid #eceef3;
+  border-radius: 10px;
+}
+
+/* 字典标签 chips */
+.sf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sf-chip {
+  font-size: 13px;
+  color: #5a6072;
+  padding: 6px 12px;
+  border: 1px solid #e3e6ee;
+  border-radius: 16px;
+  background: #fafbfd;
+
+  &.is-active {
+    color: #ffffff;
+    background: #5b7cfa;
+    border-color: #5b7cfa;
+  }
+}
+
+/* 底部操作 */
+.sf-footer {
+  display: flex;
+  gap: 12px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid #f0f1f5;
+  flex-shrink: 0;
+  /* 确保底部始终盖在可滚动主体之上，避免被遮挡导致点不到 */
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+}
+
+/* 统一按钮：用 View 渲染，避免 NutUI 原生 <button> 在 H5 下 click 不触发 */
+.sf-btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 22px;
+  box-sizing: border-box;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  user-select: none;
+
+  /* 按下态 */
+  &:active {
+    opacity: 0.85;
+  }
+
+  /* 提交中：禁用点击 + 视觉弱化 */
+  &.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+/* 取消：浅色描边，次级操作 */
+.sf-btn--cancel {
+  background: #f4f5f8;
+  color: #5a6072;
+  border: 1px solid #e3e6ee;
+}
+
+/* 确认：迷圈黑调（与全局主色 #1a1a2e 统一） */
+.sf-btn--confirm {
+  background: #1a1a2e;
+  color: #ffffff;
+  border: 1px solid #1a1a2e;
+}

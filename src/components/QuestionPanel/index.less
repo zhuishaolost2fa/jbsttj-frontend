@@ -1,0 +1,404 @@
+/* ===== 用户提问面板（底部抽屉） ===== */
+/* 复用 catalog 抽屉的视觉语言，常驻挂载 + 类名显隐 */
+
+.q-panel-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 32, 0.45);
+  z-index: 1001;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.q-panel-mask.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.q-panel-sheet {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 18px 18px 0 0;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.24s ease-out;
+}
+
+.q-panel-sheet.is-open {
+  transform: translateY(0);
+}
+
+.q-panel-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e3e5ec;
+  margin: 8px auto 4px;
+  flex-shrink: 0;
+}
+
+.q-panel-head {
+  display: flex;
+  align-items: center;
+  padding: 6px 16px 10px;
+  flex-shrink: 0;
+}
+
+.q-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2330;
+}
+
+.q-panel-sub {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: #9aa0ae;
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.q-panel-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f2f3f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.q-panel-close-text {
+  font-size: 13px;
+  color: #9aa0ae;
+  line-height: 1;
+}
+
+/* ===== 状态筛选 tabs ===== */
+.q-tabs {
+  display: flex;
+  padding: 0 16px 10px;
+  gap: 6px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #f0f1f5;
+}
+
+.q-tab {
+  padding: 5px 14px;
+  border-radius: 14px;
+  background: #f2f3f7;
+}
+
+.q-tab.is-active {
+  background: rgba(91, 124, 250, 0.12);
+}
+
+.q-tab-text {
+  font-size: 12px;
+  color: #6b7080;
+}
+
+.q-tab.is-active .q-tab-text {
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+/* ===== 面板主体 ===== */
+.q-panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 16px 24px;
+  box-sizing: border-box;
+}
+
+.q-panel-tip {
+  padding: 48px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.q-panel-tip.is-error {
+  flex-direction: column;
+}
+
+.q-panel-tip-emoji {
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.q-panel-tip-text {
+  font-size: 13px;
+  color: #9aa0ae;
+}
+
+.q-panel-tip-desc {
+  font-size: 11px;
+  color: #b6bac6;
+  margin-top: 6px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.q-panel-retry {
+  margin-top: 14px;
+  padding: 7px 20px;
+  border-radius: 16px;
+  background: rgba(91, 124, 250, 0.1);
+}
+
+.q-panel-retry-text {
+  font-size: 13px;
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+/* ===== 问题列表 ===== */
+.q-list {
+  padding-bottom: 8px;
+}
+
+.q-card {
+  background: #f7f8fc;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.q-card-head {
+  display: flex;
+  align-items: center;
+}
+
+.q-asker-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.q-time {
+  font-size: 10px;
+  color: #b6bac6;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+/* 状态标签 */
+.q-status {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  margin-left: 8px;
+}
+
+.q-status.is-pending {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.q-status.is-answered {
+  color: #12a150;
+  background: rgba(18, 161, 80, 0.1);
+}
+
+.q-status.is-dismissed {
+  color: #9aa0ae;
+  background: rgba(154, 160, 174, 0.12);
+}
+
+/* 问题内容 */
+.q-body {
+  margin-top: 8px;
+}
+
+.q-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1f2330;
+  word-break: break-word;
+}
+
+.q-ask-hint {
+  display: inline-block;
+  font-size: 11px;
+  color: #5b7cfa;
+  margin-left: 6px;
+}
+
+/* 统计 */
+.q-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.q-meta-item {
+  font-size: 11px;
+  color: #9aa0ae;
+  margin-right: 12px;
+}
+
+/* 已解答：答案区 */
+.q-answer-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eef0f5;
+}
+
+.q-answer-toggle {
+  font-size: 12px;
+  color: #5b7cfa;
+  font-weight: 500;
+}
+
+.q-answer-box {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #eef0f5;
+}
+
+.q-answerer-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.q-answerer-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-left: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.q-answer-time {
+  font-size: 10px;
+  color: #b6bac6;
+  flex-shrink: 0;
+}
+
+.q-answer-text {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #2b2f3d;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 待解答：回答入口 */
+.q-answer-trigger {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eef0f5;
+  display: flex;
+  justify-content: center;
+}
+
+.q-answer-trigger-text {
+  font-size: 12px;
+  color: #5b7cfa;
+  font-weight: 600;
+  padding: 5px 18px;
+  border-radius: 14px;
+  background: rgba(91, 124, 250, 0.08);
+}
+
+/* 回答输入框 */
+.q-answer-input {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eef0f5;
+}
+
+.q-answer-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e3e5ec;
+  font-size: 13px;
+  color: #2b2f3d;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.q-answer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.q-cancel-btn {
+  padding: 6px 16px;
+  border-radius: 14px;
+  border: 1px solid #d6d9e2;
+}
+
+.q-cancel-text {
+  font-size: 12px;
+  color: #9aa0ae;
+}
+
+.q-submit-btn {
+  padding: 6px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+}
+
+.q-submit-btn.is-disabled {
+  background: #d6d9e2;
+}
+
+.q-submit-text {
+  font-size: 12px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 分页 */
+.q-load-more {
+  padding: 12px 0;
+  text-align: center;
+}
+
+.q-load-more-text {
+  font-size: 13px;
+  color: #5b7cfa;
+}
+
+.q-list-end {
+  padding: 16px 0 8px;
+  text-align: center;
+}
+
+.q-list-end-text {
+  font-size: 11px;
+  color: #b6bac6;
+}

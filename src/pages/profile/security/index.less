@@ -1,0 +1,166 @@
+.security-page {
+  min-height: 100vh;
+  background: #f5f6fa;
+  padding: 12px 0 24px;
+  box-sizing: border-box;
+}
+
+.email-card {
+  background: #fff;
+  margin: 0 12px 12px;
+  padding: 16px;
+  border-radius: 14px;
+}
+
+.email-label {
+  display: block;
+  font-size: 13px;
+  color: #9aa0ae;
+  margin-bottom: 8px;
+}
+
+.email-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.email-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2330;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-badge {
+  flex-shrink: 0;
+  margin-left: 10px;
+  font-size: 12px;
+  color: #e0903a;
+  background: #fff3e0;
+  padding: 3px 9px;
+  border-radius: 10px;
+}
+
+.email-badge.is-ok {
+  color: #1a9e6b;
+  background: #e3f7ee;
+}
+
+.card {
+  background: #fff;
+  margin: 0 12px 12px;
+  padding: 16px;
+  border-radius: 14px;
+}
+
+.card-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2330;
+  margin-bottom: 14px;
+}
+
+.card-desc {
+  display: block;
+  font-size: 12px;
+  color: #9aa0ae;
+  margin: -8px 0 14px;
+  line-height: 1.5;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f1f5;
+}
+
+.row-label {
+  width: 76px;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: #5b6472;
+}
+
+.row-control {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.pwd-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: #1f2330;
+}
+
+.eye {
+  flex-shrink: 0;
+  margin-left: 10px;
+  font-size: 13px;
+  color: #5b7cfa;
+}
+
+/* 密码强度 */
+.strength {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 6px;
+  margin-right: 10px;
+}
+
+.strength-bars .bar {
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e6e8f0;
+}
+
+.strength-1 .bar:nth-child(1) {
+  background: #e54d42;
+}
+.strength-2 .bar:nth-child(1),
+.strength-2 .bar:nth-child(2) {
+  background: #f0a93a;
+}
+.strength-3 .bar {
+  background: #1a9e6b;
+}
+
+.strength-tip {
+  font-size: 12px;
+  color: #9aa0ae;
+}
+
+/* 提交按钮 */
+.submit-btn {
+  margin-top: 16px;
+  height: 44px;
+  border-radius: 22px;
+  background: #c9cdd8;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.submit-btn.is-ready {
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+}
+
+.submit-btn.is-ready:active {
+  opacity: 0.9;
+}

@@ -1,0 +1,13 @@
+{
+  "miniprogramRoot": "./",
+  "projectname": "jbsttj-frontend",
+  "description": "剧本杀推土机训练指南",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": true,
+    "es6": false,
+    "postcss": false,
+    "minified": false
+  },
+  "compileType": "miniprogram"
+}

@@ -1,0 +1,394 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { View, Text } from '@tarojs/components'
+import Taro from '@tarojs/taro'
+import { Button } from '@nutui/nutui-react-taro'
+import {
+  multipartUploadToOss,
+  UploadAbortError,
+  type UploadProgress,
+  type UploadResult,
+  type UploadStage,
+} from '../../utils/ossMultipartUpload'
+import { pickDmGuideFile, validateDmGuideFile } from '../../utils/filePicker'
+import { formatBytes, formatDuration, formatSpeed } from '../../utils/format'
+import './index.less'
+
+interface ImportDmGuideProps {
+  /** 导入成功回调，拿到文件 ID、临时访问链接等完整信息 */
+  onSuccess?: (result: UploadResult) => void
+}
+
+const STAGE_TEXT: Record<UploadStage, string> = {
+  idle: '',
+  hashing: '正在校验文件…',
+  preparing: '正在准备上传…',
+  uploading: '正在上传',
+  merging: '正在合并文件…',
+  finishing: '正在生成链接…',
+  done: '导入成功',
+  error: '导入失败',
+  canceled: '已取消',
+}
+
+/**
+ * 导入链路拆成的 5 个可视化步骤。
+ * 进度条以「单步」为单位：每一步内部从 0 涨到 100%，
+ * 该步完成（进入下一步）时进度条先闪一下满格，再回落到起始值重新开始。
+ */
+const STEP_META = [
+  { stage: 'hashing', label: '校验文件', hint: '计算文件指纹' },
+  { stage: 'preparing', label: '准备上传', hint: '申请上传任务' },
+  { stage: 'uploading', label: '上传分片', hint: '直传阿里云 OSS' },
+  { stage: 'merging', label: '合并文件', hint: '服务端合并分片' },
+  { stage: 'finishing', label: '生成链接', hint: '换取访问地址' },
+] as const
+
+/** 某一步刚开始时进度条回落到的最小填充值 */
+const STEP_START_PCT = 8
+/** 非上传步骤在「进行中」时进度条缓动逼近、但不直接顶满的上限（满格留给完成瞬间） */
+const STEP_ACTIVE_CAP = 99
+/** 步骤完成时进度条闪满格的停留时长，制造「到 100% 再回落」的过渡观感 */
+const STEP_FLASH_MS = 280
+
+function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
+  const [stage, setStage] = useState<UploadStage>('idle')
+  const [progress, setProgress] = useState<UploadProgress | null>(null)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [fileName, setFileName] = useState('')
+
+  /** 当前进行到的步骤下标（0..4，5 表示全部完成） */
+  const [currentStep, setCurrentStep] = useState(0)
+  /** 当前步骤进度条填充百分比（单步视角，0..100） */
+  const [stepPercent, setStepPercent] = useState(0)
+  /** 步骤完成瞬间是否处于「满格闪光」态 */
+  const [flashDone, setFlashDone] = useState(false)
+
+  // 用 ref 镜像 currentStep，避免阶段切换 effect 读到过期值
+  const stepRef = useRef(0)
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fileRef = useRef<File | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  const setStep = useCallback((idx: number) => {
+    stepRef.current = idx
+    setCurrentStep(idx)
+  }, [])
+
+  const panelVisible = stage !== 'idle'
+  const isBusy =
+    stage === 'hashing' ||
+    stage === 'preparing' ||
+    stage === 'uploading' ||
+    stage === 'merging' ||
+    stage === 'finishing'
+
+  /* 上传过程中拦截页面关闭，避免用户手滑丢掉几百 MB 的进度 */
+  useEffect(() => {
+    if (process.env.TARO_ENV !== 'h5' || !isBusy) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isBusy])
+
+  /** 阶段切换：处理「上一步满格→下一步回落」的过渡与步骤指示器推进 */
+  useEffect(() => {
+    if (stage === 'idle') return
+
+    // 全部完成
+    if (stage === 'done') {
+      setFlashDone(true)
+      setStepPercent(100)
+      setStep(STEP_META.length)
+      return
+    }
+    // 失败 / 取消：保留当前步骤，不推进
+    if (stage === 'error' || stage === 'canceled') {
+      return
+    }
+
+    const idx = STEP_META.findIndex((s) => s.stage === stage)
+    if (idx < 0) return
+
+    if (idx > stepRef.current) {
+      // 进入更靠后的步骤：上一步完成 → 闪满格 → 停留后回落到新步骤起点
+      if (flashTimer.current) clearTimeout(flashTimer.current)
+      setFlashDone(true)
+      setStepPercent(100)
+      flashTimer.current = setTimeout(() => {
+        setFlashDone(false)
+        setStep(idx)
+        setStepPercent(STEP_START_PCT)
+      }, STEP_FLASH_MS)
+    } else if (idx < stepRef.current) {
+      // 回退（如合并后缺片重传）：直接切到该步，不触发完成闪光
+      setFlashDone(false)
+      setStep(idx)
+      setStepPercent(STEP_START_PCT)
+    }
+  }, [stage, setStep])
+
+  /** 非上传步骤没有真实进度，用缓动动画把进度条推向 99%，营造「进行中」观感 */
+  useEffect(() => {
+    if (
+      stage === 'hashing' ||
+      stage === 'preparing' ||
+      stage === 'merging' ||
+      stage === 'finishing'
+    ) {
+      const id = setInterval(() => {
+        setStepPercent((p) =>
+          p >= STEP_ACTIVE_CAP
+            ? p
+            : Math.min(STEP_ACTIVE_CAP, p + Math.max(1.5, (STEP_ACTIVE_CAP - p) * 0.18))
+        )
+      }, 220)
+      return () => clearInterval(id)
+    }
+  }, [stage])
+
+  /** 上传阶段：用真实分片进度驱动进度条（过渡闪光期间不覆盖，保证「满格→回落」观感） */
+  useEffect(() => {
+    if (stage === 'uploading' && progress && !flashDone) {
+      setStepPercent(progress.percent)
+    }
+  }, [progress, stage, flashDone])
+
+  useEffect(() => {
+    return () => {
+      if (flashTimer.current) clearTimeout(flashTimer.current)
+    }
+  }, [])
+
+  const reset = useCallback(() => {
+    if (flashTimer.current) clearTimeout(flashTimer.current)
+    setStage('idle')
+    setProgress(null)
+    setErrorMsg('')
+    setFileName('')
+    setStep(0)
+    setStepPercent(0)
+    setFlashDone(false)
+    fileRef.current = null
+    abortRef.current = null
+  }, [setStep])
+
+  const startUpload = useCallback(
+    async (file: File) => {
+      fileRef.current = file
+      setFileName(file.name)
+      setErrorMsg('')
+      setProgress(null)
+      setStep(0)
+      setStepPercent(STEP_START_PCT)
+      setFlashDone(false)
+      setStage('hashing')
+
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      try {
+        const result = await multipartUploadToOss(file, {
+          signal: controller.signal,
+          onProgress: setProgress,
+          onStage: setStage,
+        })
+
+        onSuccess?.(result)
+        Taro.showToast({
+          // 秒传时没有真正传数据，给个不一样的反馈，否则用户会怀疑没传成功
+          title: result.instant ? '文件已存在，秒传完成' : 'DM 指南导入成功',
+          icon: 'success',
+        })
+        setTimeout(reset, 1500)
+      } catch (err: any) {
+        if (err instanceof UploadAbortError) {
+          reset()
+          Taro.showToast({ title: '已取消导入', icon: 'none' })
+          return
+        }
+        setStage('error')
+        setErrorMsg(err?.message || '导入失败，请重试')
+      }
+    },
+    [onSuccess, reset]
+  )
+
+  const handleImport = useCallback(async () => {
+    // 小程序端降级：chooseMessageFile 拿不到几百 MB 的文件，request 单包也只有 10MB
+    if (process.env.TARO_ENV !== 'h5') {
+      Taro.showModal({
+        title: '请在浏览器中导入',
+        content:
+          'DM 指南通常有数百 MB，小程序环境无法处理这么大的文件。请在手机浏览器或电脑端打开本页面后再导入。',
+        showCancel: false,
+        confirmText: '我知道了',
+      })
+      return
+    }
+
+    const file = await pickDmGuideFile()
+    if (!file) return
+
+    const invalidReason = validateDmGuideFile(file)
+    if (invalidReason) {
+      Taro.showToast({ title: invalidReason, icon: 'none', duration: 2500 })
+      return
+    }
+
+    startUpload(file)
+  }, [startUpload])
+
+  const handleCancel = useCallback(() => {
+    Taro.showModal({
+      title: '确认取消导入？',
+      content: '已上传的分片会被清理，需要重新上传。',
+      confirmText: '确认取消',
+      cancelText: '继续上传',
+      success: (res) => {
+        if (res.confirm) abortRef.current?.abort()
+      },
+    })
+  }, [])
+
+  const handleRetry = useCallback(() => {
+    // 重试会带同样的文件指纹重新 init，服务端自动跳过已落盘的分片
+    if (fileRef.current) startUpload(fileRef.current)
+  }, [startUpload])
+
+  const stepMeta = stage === 'done' ? null : STEP_META[currentStep]
+  const barWidth = stage === 'done' ? 100 : stepPercent
+
+  return (
+    <View className='import-dm-guide'>
+      <Button block type='primary' size='large' disabled={isBusy} onClick={handleImport}>
+        {isBusy ? '导入中…' : '📄 导入 DM 指南'}
+      </Button>
+
+      {panelVisible && (
+        <View className='dm-upload-mask'>
+          <View className='dm-upload-panel'>
+            {/* ===== 步骤完成指示器 ===== */}
+            <View className='dm-steps'>
+              {STEP_META.map((s, i) => {
+                const status: 'done' | 'active' | 'pending' | 'error' | 'canceled' =
+                  stage === 'done' || i < currentStep
+                    ? 'done'
+                    : i === currentStep
+                    ? stage === 'error'
+                      ? 'error'
+                      : stage === 'canceled'
+                        ? 'canceled'
+                        : 'active'
+                    : 'pending'
+                const lineDone = i < currentStep || stage === 'done'
+                return (
+                  <View className='dm-step' key={s.stage}>
+                    {i < STEP_META.length - 1 && (
+                      <View className={`dm-step-line${lineDone ? ' is-done' : ''}`} />
+                    )}
+                    <View className={`dm-step-node is-${status}`}>
+                      {status === 'done' ? (
+                        <Text className='dm-step-mark'>✓</Text>
+                      ) : status === 'error' ? (
+                        <Text className='dm-step-mark'>!</Text>
+                      ) : status === 'canceled' ? (
+                        <Text className='dm-step-mark'>×</Text>
+                      ) : (
+                        <Text className='dm-step-mark'>{i + 1}</Text>
+                      )}
+                    </View>
+                    <Text className={`dm-step-label is-${status}`}>{s.label}</Text>
+                  </View>
+                )
+              })}
+            </View>
+
+            <Text className='dm-upload-title'>
+              {stage === 'done'
+                ? '🎉 导入成功'
+                : stage === 'error'
+                  ? '导入失败'
+                  : stage === 'canceled'
+                    ? '已取消'
+                    : stepMeta?.label ?? STAGE_TEXT[stage]}
+            </Text>
+            <Text className='dm-upload-filename'>{fileName}</Text>
+
+            {stage === 'error' ? (
+              <View className='dm-upload-error'>
+                <Text className='dm-error-text'>{errorMsg}</Text>
+                <Text className='dm-error-tip'>
+                  已上传的分片保存在服务端，重试将自动从断点继续。
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View className='dm-progress-track'>
+                  <View
+                    className={`dm-progress-bar${flashDone ? ' is-flash' : ''}${
+                      stage === 'done' ? ' is-done' : ''
+                    }`}
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </View>
+
+                <View className='dm-progress-meta'>
+                  <Text className='dm-step-current'>
+                    {stage === 'done'
+                      ? '全部步骤完成'
+                      : `${(stepMeta?.label) ?? ''} · ${Math.round(barWidth)}%`}
+                  </Text>
+                  {progress && (
+                    <Text className='dm-size'>
+                      {formatBytes(progress.loaded)} / {formatBytes(progress.total)}
+                    </Text>
+                  )}
+                </View>
+
+                {/* 进行中才展示该步骤的提示文案 */}
+                {isBusy && stepMeta?.hint && (
+                  <Text className='dm-step-hint'>{stepMeta.hint}…</Text>
+                )}
+
+                {progress && stage === 'uploading' && (
+                  <View className='dm-progress-meta'>
+                    <Text className='dm-sub'>
+                      分片 {progress.uploadedParts}/{progress.totalParts} ·{' '}
+                      {formatSpeed(progress.speed)}
+                    </Text>
+                    <Text className='dm-sub'>
+                      剩余 {formatDuration(progress.remainSeconds)}
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+
+            <View className='dm-upload-actions'>
+              {stage === 'error' && (
+                <>
+                  <Button size='small' fill='outline' onClick={reset}>
+                    关闭
+                  </Button>
+                  <Button size='small' type='primary' onClick={handleRetry}>
+                    重试
+                  </Button>
+                </>
+              )}
+              {isBusy && (
+                <Button size='small' fill='outline' onClick={handleCancel}>
+                  取消上传
+                </Button>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  )
+}
+
+export default ImportDmGuide

@@ -1,0 +1,76 @@
+.avatar-editor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ae-stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  /* 阻止浏览器默认的滚动 / 双指缩放，保证手势只作用于头像 */
+  touch-action: none;
+}
+
+.ae-frame {
+  position: relative;
+  width: 260px; /* 需与 AvatarEditor.tsx 中的 FRAME 常量一致 */
+  height: 260px;
+  border-radius: 50%;
+  overflow: hidden;
+  /* 用超大扩散阴影把取景框以外区域压暗，模拟微信的圆形「挖洞」效果 */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-sizing: border-box;
+}
+
+.ae-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.ae-bar {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ae-btn {
+  flex: 0 0 auto;
+  color: #fff;
+  font-size: 16px;
+  padding: 8px 4px;
+
+  &.primary {
+    color: #07c160;
+    font-weight: 600;
+  }
+}
+
+.ae-slider {
+  flex: 1;
+}

@@ -1,0 +1,236 @@
+.login-page {
+  min-height: 100vh;
+  background: #f7f8fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  padding: 32px 24px 28px;
+  box-sizing: border-box;
+}
+
+/* ===== 品牌区 ===== */
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.login-brand-emoji {
+  font-size: 36px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.login-brand-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: 1px;
+}
+
+.login-brand-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ===== 登录/注册切换 ===== */
+.login-tabs {
+  display: flex;
+  background: #f1f3f8;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 22px;
+}
+
+.login-tab {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7a7f8c;
+  padding: 9px 0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.login-tab.is-active {
+  background: #ffffff;
+  color: #1a1a2e;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== 表单 ===== */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-field {
+  margin-bottom: 16px;
+}
+
+.field-label {
+  display: block;
+  font-size: 13px;
+  color: #5a5f6e;
+  margin-bottom: 7px;
+  font-weight: 500;
+}
+
+.field-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field-input {
+  width: 100%;
+  height: 44px;
+  line-height: 44px;
+  background: #f7f8fc;
+  border: 1px solid #e6e9f0;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #1a1a2e;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.field-input.has-suffix {
+  padding-right: 54px;
+}
+
+.field-input:focus {
+  border-color: #5b7cfa;
+  background: #ffffff;
+}
+
+.field-placeholder {
+  color: #b6bac6;
+  font-size: 14px;
+}
+
+.field-suffix {
+  position: absolute;
+  right: 14px;
+  font-size: 13px;
+  color: #5b7cfa;
+  padding: 4px;
+}
+
+/* ===== 提示条 ===== */
+.form-alert {
+  display: flex;
+  align-items: flex-start;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.form-alert.is-error {
+  background: #fff5f5;
+}
+
+.form-alert.is-notice {
+  background: #f0f7ff;
+}
+
+.alert-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-right: 8px;
+  margin-top: 1px;
+}
+
+.is-error .alert-icon {
+  background: #e54d42;
+}
+
+.is-notice .alert-icon {
+  background: #5b7cfa;
+}
+
+.alert-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.is-error .alert-text {
+  color: #e54d42;
+}
+
+.is-notice .alert-text {
+  color: #3a63d8;
+}
+
+/* ===== 提交按钮 ===== */
+.submit-btn {
+  height: 46px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  box-shadow: 0 6px 16px rgba(91, 124, 250, 0.28);
+  transition: opacity 0.2s ease;
+}
+
+.submit-btn:active {
+  opacity: 0.85;
+}
+
+.submit-btn.is-loading {
+  opacity: 0.65;
+}
+
+.submit-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+/* ===== 底部切换 ===== */
+.login-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.switch-tip {
+  font-size: 13px;
+  color: #999;
+}
+
+.switch-link {
+  font-size: 13px;
+  color: #5b7cfa;
+  font-weight: 600;
+  margin-left: 4px;
+}

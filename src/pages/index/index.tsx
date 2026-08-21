@@ -119,12 +119,13 @@ function Index() {
    *
    * 解析要跑十几分钟，停在首页用户看不到任何后续反馈，很容易以为没生效。
    * 送到列表页正好能看着进度条走完，也顺带告诉他「导入的本都在这儿」。
+   * 「我的剧本」已从 tab 收纳到「我的」页面入口下，走 navigateTo 而非 switchTab。
    */
   const handleSubmitted = useCallback((created: ScriptItemCamel) => {
     setSubmitVisible(false)
     Taro.showToast({ title: '已提交，正在解析手册', icon: 'none', duration: 1800 })
     setTimeout(() => {
-      void Taro.switchTab({ url: '/pages/scripts/index' })
+      void Taro.navigateTo({ url: '/pages/myScripts/index' })
     }, 800)
     return created
   }, [])

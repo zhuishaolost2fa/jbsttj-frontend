@@ -104,7 +104,7 @@ function ProfilePage() {
       <View className='menu-group'>
         <View
           className='menu-item'
-          onClick={() => Taro.switchTab({ url: '/pages/scripts/index' })}
+          onClick={() => Taro.navigateTo({ url: '/pages/myScripts/index' })}
         >
           <Text className='menu-icon'>📚</Text>
           <Text className='menu-label'>我的剧本</Text>

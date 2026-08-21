@@ -330,4 +330,89 @@ export async function deleteScript(idOrCode: string): Promise<void> {
   await request({ url: `/scripts/${encodeURIComponent(idOrCode)}`, method: 'DELETE' })
 }
 
+/* -------------------------------------------------------------------------- */
+/*                               剧本库（全量浏览）                              */
+/* -------------------------------------------------------------------------- */
+
+/** 排序选项（与后端 SORTS 白名单一致） */
+export type ScriptSort = 'hot' | 'rating' | 'newest' | 'year' | 'title'
+
+/** 剧本库筛选参数 */
+export interface ScriptListQuery {
+  keyword?: string
+  playstyles?: string[]
+  themes?: string[]
+  difficulties?: string[]
+  releases?: string[]
+  /** 按人数区间包含匹配：players=6 命中 player_min≤6 且 player_max≥6 的剧本 */
+  players?: number
+  /** 按时长区间包含匹配：duration=300 命中 duration_min≤300 且 duration_max≥300 的剧本（分钟） */
+  duration?: number
+  sort?: ScriptSort
+  limit?: number
+  offset?: number
+}
+
+/**
+ * 拼接查询字符串，数组参数生成重复键（FastAPI `Query(List[str])` 要求 `?playstyle=a&playstyle=b`，
+ * 不能用 `playstyle[]=a` 或 `playstyle=a,b`）。
+ */
+function buildListQS(params: Record<string, unknown>): string {
+  const parts: string[] = []
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null || value === '') continue
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue
+      for (const v of value) {
+        parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`)
+      }
+    } else {
+      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    }
+  }
+  return parts.length ? `?${parts.join('&')}` : ''
+}
+
+/**
+ * 拉取剧本库全量列表（公开接口，未登录也可浏览）。
+ *
+ * 走 `GET /scripts`，不走 `mine=true`。后端默认 `status=published` 只返回已上架剧本。
+ * 前端手动拼 query string 以保证数组参数以重复键形式发出，避免 Taro 序列化成
+ * `playstyle[]=xxx` 导致后端 FastAPI 无法识别。
+ *
+ * 响应结构同 `fetchMyScripts`：`{ items: ScriptItem[], pagination }`，
+ * 这里复用 `normalizeScript` 把蛇形 key 归一成驼峰。
+ */
+export async function fetchScriptList(
+  query: ScriptListQuery = {}
+): Promise<MyScriptListResult> {
+  const params: Record<string, unknown> = {
+    sort: query.sort ?? 'hot',
+    limit: query.limit ?? 20,
+    offset: query.offset ?? 0,
+  }
+  if (query.keyword?.trim()) params.keyword = query.keyword.trim()
+  if (query.playstyles?.length) params.playstyle = query.playstyles
+  if (query.themes?.length) params.theme = query.themes
+  if (query.difficulties?.length) params.difficulty = query.difficulties
+  if (query.releases?.length) params.release = query.releases
+  if (query.players != null) params.players = query.players
+  if (query.duration != null) params.duration = query.duration
+
+  const qs = buildListQS(params)
+  const res = await get<{ items: Record<string, any>[]; pagination: Record<string, any> }>(
+    `/scripts${qs}`
+  )
+  const pg = (res?.pagination ?? {}) as Record<string, any>
+  return {
+    items: (res?.items ?? []).map(normalizeScript),
+    pagination: {
+      total: Number(pg.total ?? 0),
+      limit: Number(pg.limit ?? params.limit),
+      offset: Number(pg.offset ?? params.offset),
+      hasMore: Boolean(pg.hasMore ?? pg.has_more ?? false),
+    },
+  }
+}
+
 export type { ApiError }

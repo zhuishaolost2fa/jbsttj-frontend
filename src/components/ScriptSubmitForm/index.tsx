@@ -197,7 +197,6 @@ function ScriptSubmitForm({
 
   /* ---------------- 提交 ---------------- */
   const handleSubmit = useCallback(async () => {
-    debugger;
     if (!title.trim()) {
       Taro.showToast({ title: "请填写剧本名称", icon: "none" });
       return;

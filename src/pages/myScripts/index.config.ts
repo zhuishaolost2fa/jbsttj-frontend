@@ -1,4 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: '剧本库',
+  navigationBarTitleText: '我的剧本',
   enablePullDownRefresh: true
 })

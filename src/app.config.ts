@@ -6,9 +6,11 @@ export default defineAppConfig({
     'pages/profile/edit/index',
     'pages/profile/security/index',
     'pages/scriptDetail/index',
-    'pages/login/index'
+    'pages/login/index',
+    'pages/myScripts/index'
   ],
-  // 底部主菜单：导入只是其中一个模块，剧本管理与个人中心各占一个入口。
+  // 底部主菜单：导入 · 剧本库（全量浏览+筛选） · 我的。
+  // 「我的剧本」不再独占 tab，收纳到「我的」页面入口下，通过 navigateTo 进入。
   // 刻意不配 iconPath —— 小程序端图标是可选的，纯文字 tab 省掉一套图片资源，
   // 也避免 H5 与小程序两端图标路径解析差异带来的空白图标问题。
   tabBar: {
@@ -19,7 +21,7 @@ export default defineAppConfig({
     borderStyle: 'white',
     list: [
       { pagePath: 'pages/index/index', text: '导入' },
-      { pagePath: 'pages/scripts/index', text: '我的剧本' },
+      { pagePath: 'pages/scripts/index', text: '剧本' },
       { pagePath: 'pages/profile/index', text: '我的' }
     ]
   },

@@ -1,0 +1,270 @@
+.scripts-page {
+  min-height: 100vh;
+  background: #f7f8fc;
+  padding: 16px 16px 24px;
+  box-sizing: border-box;
+}
+
+/* ===== 页头 ===== */
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2330;
+}
+
+.page-count {
+  font-size: 12px;
+  color: #9aa0ae;
+}
+
+.page-tip {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #9aa0ae;
+}
+
+.page-error {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: rgba(229, 77, 66, 0.08);
+  color: #e54d42;
+  font-size: 13px;
+}
+
+/* ===== 空状态 ===== */
+.empty-block {
+  padding: 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-emoji {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-bottom: 6px;
+}
+
+.empty-desc {
+  font-size: 12px;
+  color: #9aa0ae;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.empty-btn {
+  padding: 9px 26px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+}
+
+.empty-btn-text {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ===== 卡片列表 ===== */
+.script-list {
+  max-height: calc(100% - 80px);
+}
+
+.script-card {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+}
+
+.card-cover {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.cover-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2330;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+/* ===== 状态徽章 ===== */
+.card-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.card-badge.is-ready {
+  color: #12a150;
+  background: rgba(18, 161, 80, 0.1);
+}
+
+.card-badge.is-parsing {
+  color: #5b7cfa;
+  background: rgba(91, 124, 250, 0.1);
+}
+
+.card-badge.is-failed {
+  color: #e54d42;
+  background: rgba(229, 77, 66, 0.1);
+}
+
+.card-badge.is-idle {
+  color: #9aa0ae;
+  background: rgba(154, 160, 174, 0.12);
+}
+
+/* ===== 元信息 ===== */
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.meta-item {
+  font-size: 11px;
+  color: #9aa0ae;
+  margin-right: 10px;
+}
+
+.meta-item.is-draft {
+  color: #d98b13;
+}
+
+/* ===== 进度 ===== */
+.card-progress {
+  margin-top: 8px;
+}
+
+.progress-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(91, 124, 250, 0.14);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
+  transition: width 0.4s ease;
+}
+
+/* 不确定进度态：有实时计数但无总条数可量化，用滑动动效代替静止百分比 */
+.progress-fill.is-indeterminate {
+  width: 35% !important;
+  animation: dm-progress-slide 1.3s ease-in-out infinite;
+}
+
+@keyframes dm-progress-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(290%);
+  }
+}
+
+.progress-text {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #5b7cfa;
+}
+
+.card-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #e54d42;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-ready {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #12a150;
+}
+
+.card-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #b6bac6;
+}
+
+.card-arrow {
+  font-size: 20px;
+  color: #c8ccd6;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+/* ===== 删除按钮 ===== */
+.card-del {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(229, 77, 66, 0.08);
+}
+
+.card-del-icon {
+  font-size: 15px;
+  line-height: 1;
+}

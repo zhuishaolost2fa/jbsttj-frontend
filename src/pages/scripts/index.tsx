@@ -1,59 +1,69 @@
 /**
- * 我的剧本 —— 导入结果与解析状态的落地页。
+ * 剧本库 —— 浏览所有已上架剧本，支持多维度筛选。
  *
- * 剧本从「导入手册」到「能问答」中间隔着一条十几分钟的异步流水线，
- * 用户点完提交就没下文了显然不行。这个页面回答两个问题：
- * 我导过哪些本、每个本现在到哪一步了。
+ * 替代原先的「我的剧本」tab：原先占了一个 tab 位但只服务已登录用户看自己导入的剧本，
+ * 现在中间 tab 改成全量剧本库（公开可浏览），「我的剧本」收纳到「我的」页面入口下。
  *
- * 状态数据来自 `GET /scripts/import-status` 批量接口（三阶段归一）。
- * **受限轮询**：进入页面先拉一次，只有当还有本处于「解析中 / 上传中 / 待解析」
- * 时才起 5 秒轮询，全部落定后立即停表；切到别的 tab（页面隐藏）也立刻暂停，
- * 避免后台空转烧流量。需要手动刷新就下拉。
+ * 筛选 UX 设计原则：**直接点击，不藏抽屉**。
+ *   - 排序：横向滚动 chip 行，一点即切
+ *   - 玩法 / 题材 / 难度：多选 chip，横向滚动，点击即筛选
+ *   - 人数：单选 chip（后端 players 参数只接受一个值）
+ *   - 搜索框：防抖 350ms 自动触发
+ *   - 已选筛选项汇总条，支持逐个移除和一键清空
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView } from "@tarojs/components";
-import Taro, { useDidShow, useDidHide, usePullDownRefresh } from "@tarojs/taro";
+import Taro, { usePullDownRefresh } from "@tarojs/taro";
+import { SearchBar } from "@nutui/nutui-react-taro";
 import {
-  fetchMyScripts,
-  deleteScript,
+  fetchScriptList,
+  fetchScriptOptions,
   type ScriptItemCamel,
+  type ScriptOptionGroup,
+  type ScriptSort,
+  type ScriptListQuery,
 } from "../../services/script";
-import {
-  fetchImportStatusBatch,
-  isTerminalStatus,
-  resolveJobProgress,
-  OVERALL_STATUS_TEXT,
-  type ImportStatus,
-} from "../../services/dmGuide";
 import { ApiError } from "../../services/request";
-import { goLogin, useAuth } from "../../store/auth";
-import { usePolling } from "../../hooks/usePolling";
 import "./index.less";
 
-/** 状态徽章的视觉分组 */
-const STATUS_TONE: Record<string, string> = {
-  ready: "is-ready",
-  parsing: "is-parsing",
-  uploading: "is-parsing",
-  pending: "is-idle",
-  no_guide: "is-idle",
-  failed: "is-failed",
-};
+/** 排序选项（与后端 SORTS 白名单一致） */
+const SORT_OPTIONS: { code: ScriptSort; label: string }[] = [
+  { code: "hot", label: "热门" },
+  { code: "rating", label: "评分" },
+  { code: "newest", label: "最新" },
+  { code: "year", label: "年份" },
+  { code: "title", label: "名称" },
+];
 
-/** 轮询间隔：解析动辄十几分钟，5 秒一次足够跟上，也不至于把后端问烦 */
-const POLL_INTERVAL = 5000;
+/** 防抖延迟：搜索框输入停下后多久触发查询 */
+const DEBOUNCE_MS = 350;
 
-function ScriptsPage() {
-  const { isAuthenticated, status: authStatus } = useAuth();
+function ScriptLibraryPage() {
+  /* ----------------------------- 筛选状态 ----------------------------- */
+  const [keyword, setKeyword] = useState("");
+  const [sort, setSort] = useState<ScriptSort>("hot");
+  const [playstyles, setPlaystyles] = useState<string[]>([]);
+  const [themes, setThemes] = useState<string[]>([]);
+  const [difficulties, setDifficulties] = useState<string[]>([]);
+  const [players, setPlayers] = useState<number | undefined>(undefined);
+
+  /* ----------------------------- 字典维度 ----------------------------- */
+  const [optionGroups, setOptionGroups] = useState<ScriptOptionGroup[]>([]);
+
+  /* ----------------------------- 列表状态 ----------------------------- */
   const [scripts, setScripts] = useState<ScriptItemCamel[]>([]);
-  const [statusMap, setStatusMap] = useState<Record<string, ImportStatus>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
-  /** 页面是否可见：切到别的 tab 时置 false，用于暂停受限轮询 */
-  const [visible, setVisible] = useState(true);
 
+  /* ----------------------------- 控制标志 ----------------------------- */
   const mountedRef = useRef(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 请求序号：仅应用最新一次的结果，丢弃乱序的旧响应 */
+  const reqSeq = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -62,286 +72,438 @@ function ScriptsPage() {
     };
   }, []);
 
-  /**
-   * 批量拉取剧本导入状态 —— 一次请求拿回所有本，替代逐本调 import-status。
-   * 只查「已关联手册」的本（hasGuide=false 永远是 no_guide，无需轮询）；
-   * 批量接口内部对失败条目静默跳过，这里整批失败也不让列表变红（卡片退化为「状态未知」）。
-   */
-  const loadStatuses = useCallback(
-    async (list: ScriptItemCamel[]): Promise<boolean> => {
-      const targets = list.filter((s) => s.id && s.hasGuide);
-      if (!targets.length) return true;
+  /* ---------- 字典维度：首屏拉一次，筛选项直接从里面取 ---------- */
+  useEffect(() => {
+    fetchScriptOptions()
+      .then((tree) => {
+        if (mountedRef.current) setOptionGroups(tree.categories);
+      })
+      .catch(() => {
+        // 字典拉不到也不阻断列表加载，筛选项只是不渲染
+      });
+  }, []);
+
+  const playstyleGroup = optionGroups.find((g) => g.code === "playstyle");
+  const themeGroup = optionGroups.find((g) => g.code === "theme");
+  const difficultyGroup = optionGroups.find((g) => g.code === "difficulty");
+  const playerCountGroup = optionGroups.find(
+    (g) => g.code === "player_count"
+  );
+
+  /* ---------- 构建查询参数 ---------- */
+  const buildQuery = useCallback((): ScriptListQuery => {
+    const q: ScriptListQuery = { sort };
+    if (keyword.trim()) q.keyword = keyword.trim();
+    if (playstyles.length) q.playstyles = playstyles;
+    if (themes.length) q.themes = themes;
+    if (difficulties.length) q.difficulties = difficulties;
+    if (players != null) q.players = players;
+    return q;
+  }, [keyword, sort, playstyles, themes, difficulties, players]);
+
+  /* ---------- 加载剧本列表 ---------- */
+  const loadScripts = useCallback(
+    async (reset: boolean) => {
+      const seq = ++reqSeq.current;
+      if (reset) {
+        setLoading(true);
+        setErrorMsg("");
+      } else {
+        setLoadingMore(true);
+      }
 
       try {
-        const map = await fetchImportStatusBatch(targets.map((s) => s.id));
-        if (!mountedRef.current) return false;
-        setStatusMap((prev) => ({ ...prev, ...map }));
-        return true;
-      } catch {
-        // 批量状态接口异常不该让整个列表变红 —— 卡片会保持上一次的状态或退化成「状态未知」
-        // 但需返回 false，让 usePolling 计入连续失败、触发「三次失败停表」
-        return false;
+        const baseQuery = buildQuery();
+        const res = await fetchScriptList({
+          ...baseQuery,
+          limit: 20,
+          offset: reset ? 0 : scripts.length,
+        });
+        if (seq !== reqSeq.current) return; // 已有更新的请求发出
+        if (reset) {
+          setScripts(res.items);
+        } else {
+          setScripts((prev) => [...prev, ...res.items]);
+        }
+        setHasMore(res.pagination.hasMore);
+        setTotal(res.pagination.total);
+      } catch (err) {
+        if (seq !== reqSeq.current) return;
+        const msg =
+          err instanceof ApiError ? err.message : "加载失败，请重试";
+        if (reset) setErrorMsg(msg);
+        else setErrorMsg("加载更多失败，请重试");
+      } finally {
+        if (seq !== reqSeq.current) return;
+        if (reset) setLoading(false);
+        else setLoadingMore(false);
       }
     },
+    [buildQuery, scripts.length]
+  );
+
+  /* ---------- 筛选条件变化时防抖触发查询 ---------- */
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void loadScripts(true);
+    }, DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword, sort, playstyles, themes, difficulties, players]);
+
+  /* ---------- 下拉刷新 ---------- */
+  usePullDownRefresh(() => {
+    void loadScripts(true).finally(() => Taro.stopPullDownRefresh());
+  });
+
+  /* ---------- 加载更多 ---------- */
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || !hasMore || loading) return;
+    void loadScripts(false);
+  }, [loadingMore, hasMore, loading, loadScripts]);
+
+  /* ---------- 多选切换 ---------- */
+  const toggleArray = useCallback(
+    (setter: (fn: (prev: string[]) => string[]) => void) =>
+      (code: string) => {
+        setter((prev) =>
+          prev.includes(code)
+            ? prev.filter((c) => c !== code)
+            : [...prev, code]
+        );
+      },
     []
   );
+  const togglePlaystyle = toggleArray(setPlaystyles);
+  const toggleTheme = toggleArray(setThemes);
+  const toggleDifficulty = toggleArray(setDifficulties);
 
-  const loadScripts = useCallback(
-    async (opts: { silent?: boolean } = {}) => {
-      if (!opts.silent) setLoading(true);
-      setErrorMsg("");
-      try {
-        const res = await fetchMyScripts({ sort: "newest", limit: 30 });
-        if (!mountedRef.current) return;
-        setScripts(res.items);
-        await loadStatuses(res.items);
-      } catch (err) {
-        if (!mountedRef.current) return;
-        const msg =
-          err instanceof ApiError ? err.message : "加载失败，请下拉重试";
-        setErrorMsg(msg);
-      } finally {
-        if (mountedRef.current) setLoading(false);
-      }
-    },
-    [loadStatuses]
-  );
+  /* ---------- 单选切换（人数：后端只接受一个 players 值） ---------- */
+  const togglePlayers = useCallback((val: number) => {
+    setPlayers((prev) => (prev === val ? undefined : val));
+  }, []);
 
-  // 每次进入页面都刷新：从导入流程回来时能立刻看到新剧本。
-  // 只在进入时拉一次，不后台轮询；需要看最新进度就下拉刷新。
-  // 每次进入页面都刷新：从导入流程回来时能立刻看到新剧本
-  useDidShow(() => {
-    setVisible(true);
-    if (isAuthenticated) void loadScripts({ silent: scripts.length > 0 });
-  });
+  /* ---------- 清空全部筛选 ---------- */
+  const clearAll = useCallback(() => {
+    setKeyword("");
+    setPlaystyles([]);
+    setThemes([]);
+    setDifficulties([]);
+    setPlayers(undefined);
+    setSort("hot");
+  }, []);
 
-  // 切到别的 tab（比如「导入」）时页面并不会销毁，只是隐藏。
-  // 必须显式置 false，受限轮询 effect 才会清掉 interval、停止空转调用接口。
-  useDidHide(() => {
-    setVisible(false);
-  });
+  const hasActiveFilters =
+    !!keyword.trim() ||
+    playstyles.length > 0 ||
+    themes.length > 0 ||
+    difficulties.length > 0 ||
+    players != null;
 
-  useEffect(() => {
-    if (isAuthenticated) void loadScripts();
-    else setLoading(false);
-  }, [isAuthenticated, loadScripts]);
-
-  // 下拉刷新：手动拉取最新导入状态
-  usePullDownRefresh(() => {
-    void loadScripts({ silent: true }).finally(() =>
-      Taro.stopPullDownRefresh()
-    );
-  });
-
-  /* 受限轮询：只有还存在「解析中 / 上传中 / 待解析」的本时才起表，
-     全部落定后立即停掉；页面隐藏（切走 tab）时也立刻暂停。
-     轮询接口连续失败 3 次即停表（后端挂了就不再空转烧流量），用户可下拉重试。 */
-  const pending = scripts.filter((s) => {
-    const st = statusMap[s.id]?.overallStatus;
-    return st != null && !isTerminalStatus(st);
-  });
-
-  usePolling({
-    active: pending.length > 0,
-    visible,
-    interval: POLL_INTERVAL,
-    task: () => loadStatuses(pending),
-    onGiveUp: () =>
-      setErrorMsg("状态刷新已停止（连续多次失败），请下拉重试"),
-  });
-
-  const openDetail = (s: ScriptItemCamel) => {
+  /* ---------- 打开剧本详情 ---------- */
+  const openDetail = useCallback((s: ScriptItemCamel) => {
     Taro.navigateTo({
       url: `/pages/scriptDetail/index?code=${encodeURIComponent(
         s.code
       )}&title=${encodeURIComponent(s.title || "")}`,
     });
-  };
-
-  /** 删除剧本：先二次确认，避免手滑误删（删除不可逆，索引一并清掉） */
-  const handleDelete = useCallback((s: ScriptItemCamel) => {
-    Taro.showModal({
-      title: "删除剧本",
-      content: `确定删除「${
-        s.title || "未命名剧本"
-      }」吗？删除后无法恢复，关联的 DM 手册索引也会一起清除。`,
-      confirmText: "删除",
-      confirmColor: "#e54d42",
-      cancelText: "取消",
-      success: async (res) => {
-        if (!res.confirm) return;
-        try {
-          await deleteScript(s.id);
-          // 本地即刻移除，不必等下一次刷新
-          setScripts((prev) => prev.filter((x) => x.id !== s.id));
-          setStatusMap((prev) => {
-            const next = { ...prev };
-            delete next[s.id];
-            return next;
-          });
-          Taro.showToast({ title: "已删除", icon: "success" });
-        } catch (err) {
-          Taro.showToast({
-            title: err instanceof ApiError ? err.message : "删除失败，请重试",
-            icon: "none",
-          });
-        }
-      },
-    });
   }, []);
 
-  /* ------------------------------ 分支渲染 ------------------------------ */
-
-  if (authStatus === "loading") {
-    return (
-      <View className="scripts-page">
-        <View className="page-tip">正在恢复登录状态…</View>
-      </View>
+  /* ---------- 已选项汇总：逐个可移除 ---------- */
+  const activeChips: { label: string; onRemove: () => void }[] = [];
+  if (keyword.trim())
+    activeChips.push({
+      label: `"${keyword.trim()}"`,
+      onRemove: () => setKeyword(""),
+    });
+  playstyles.forEach((code) => {
+    const opt = playstyleGroup?.options.find((o) => o.code === code);
+    if (opt)
+      activeChips.push({
+        label: opt.label,
+        onRemove: () => togglePlaystyle(code),
+      });
+  });
+  themes.forEach((code) => {
+    const opt = themeGroup?.options.find((o) => o.code === code);
+    if (opt)
+      activeChips.push({
+        label: opt.label,
+        onRemove: () => toggleTheme(code),
+      });
+  });
+  difficulties.forEach((code) => {
+    const opt = difficultyGroup?.options.find((o) => o.code === code);
+    if (opt)
+      activeChips.push({
+        label: opt.label,
+        onRemove: () => toggleDifficulty(code),
+      });
+  });
+  if (players != null) {
+    const opt = playerCountGroup?.options.find(
+      (o) => o.minValue === players
     );
+    if (opt)
+      activeChips.push({
+        label: opt.label,
+        onRemove: () => setPlayers(undefined),
+      });
   }
 
-  if (!isAuthenticated) {
-    return (
-      <View className="scripts-page">
-        <View className="empty-block">
-          <Text className="empty-emoji">🔒</Text>
-          <Text className="empty-title">登录后查看我导入的剧本</Text>
-          <Text className="empty-desc">剧本与解析进度都挂在你的账号下</Text>
-          <View className="empty-btn" onClick={() => goLogin()}>
-            <Text className="empty-btn-text">去登录</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
+  /* ------------------------------ 渲染 ------------------------------ */
   return (
-    <View className="scripts-page">
-      <View className="page-head">
-        <Text className="page-title">我的剧本</Text>
-        <Text className="page-count">
-          {scripts.length ? `共 ${scripts.length} 本` : ""}
-        </Text>
+    <View className="library-page">
+      {/* ===== 搜索框（sticky） ===== */}
+      <View className="lib-search">
+        <SearchBar
+          value={keyword}
+          placeholder="搜索剧本名、作者…"
+          shape="round"
+          onChange={(v: string) => setKeyword(v)}
+          onClear={() => setKeyword("")}
+        />
       </View>
 
-      {errorMsg ? <View className="page-error">{errorMsg}</View> : null}
-
-      {loading && !scripts.length ? (
-        <View className="page-tip">加载中…</View>
-      ) : null}
-
-      {!loading && !scripts.length && !errorMsg ? (
-        <View className="empty-block">
-          <Text className="empty-emoji">📥</Text>
-          <Text className="empty-title">还没有导入过剧本</Text>
-          <Text className="empty-desc">导入 DM 手册后，这里会显示解析进度</Text>
+      {/* ===== 排序 ===== */}
+      <ScrollView scrollX className="sort-row" >
+        {SORT_OPTIONS.map((opt) => (
           <View
-            className="empty-btn"
-            onClick={() => Taro.switchTab({ url: "/pages/index/index" })}
+            key={opt.code}
+            className={`sort-chip ${sort === opt.code ? "is-active" : ""}`}
+            onClick={() => setSort(opt.code)}
           >
-            <Text className="empty-btn-text">去导入</Text>
+            {opt.label}
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* ===== 筛选维度 ===== */}
+      <View className="filter-section">
+        {playstyleGroup ? (
+          <View className="filter-row">
+            <Text className="filter-label">玩法</Text>
+            <ScrollView scrollX className="filter-chips" >
+              {playstyleGroup.options.map((opt) => (
+                <View
+                  key={opt.code}
+                  className={`f-chip ${
+                    playstyles.includes(opt.code) ? "is-active" : ""
+                  }`}
+                  onClick={() => togglePlaystyle(opt.code)}
+                >
+                  {opt.label}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {themeGroup ? (
+          <View className="filter-row">
+            <Text className="filter-label">题材</Text>
+            <ScrollView scrollX className="filter-chips" >
+              {themeGroup.options.map((opt) => (
+                <View
+                  key={opt.code}
+                  className={`f-chip ${
+                    themes.includes(opt.code) ? "is-active" : ""
+                  }`}
+                  onClick={() => toggleTheme(opt.code)}
+                >
+                  {opt.label}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {difficultyGroup ? (
+          <View className="filter-row">
+            <Text className="filter-label">难度</Text>
+            <ScrollView scrollX className="filter-chips" >
+              {difficultyGroup.options.map((opt) => (
+                <View
+                  key={opt.code}
+                  className={`f-chip ${
+                    difficulties.includes(opt.code) ? "is-active" : ""
+                  }`}
+                  onClick={() => toggleDifficulty(opt.code)}
+                >
+                  {opt.label}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {playerCountGroup ? (
+          <View className="filter-row">
+            <Text className="filter-label">人数</Text>
+            <ScrollView scrollX className="filter-chips" >
+              {playerCountGroup.options.map((opt) => (
+                <View
+                  key={opt.code}
+                  className={`f-chip ${
+                    players === opt.minValue ? "is-active" : ""
+                  }`}
+                  onClick={() =>
+                    opt.minValue != null && togglePlayers(opt.minValue)
+                  }
+                >
+                  {opt.label}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+      </View>
+
+      {/* ===== 已选筛选汇总条 ===== */}
+      {hasActiveFilters ? (
+        <View className="active-bar">
+          <ScrollView scrollX className="active-chips" >
+            {activeChips.map((chip, i) => (
+              <View key={i} className="active-chip" onClick={chip.onRemove}>
+                <Text className="active-chip-text">{chip.label}</Text>
+                <Text className="active-chip-x">✕</Text>
+              </View>
+            ))}
+          </ScrollView>
+          <View className="clear-all-btn" onClick={clearAll}>
+            <Text className="clear-all-text">清除</Text>
           </View>
         </View>
       ) : null}
 
-      <ScrollView className="script-list" scrollY>
-        {scripts.map((s) => {
-          const st = statusMap[s.id];
-          const overall =
-            st?.overallStatus ?? (s.hasGuide ? "pending" : "no_guide");
-          const tone = STATUS_TONE[overall] ?? "is-idle";
-          const job = (st?.dmGuide as any)?.job;
-          const isParsing = overall === "parsing" || overall === "uploading";
-          const jobProg = resolveJobProgress(job);
+      {/* ===== 结果计数 ===== */}
+      <View className="result-info">
+        {loading ? (
+          <Text className="result-count">加载中…</Text>
+        ) : (
+          <Text className="result-count">
+            共 {total} 个剧本
+          </Text>
+        )}
+      </View>
 
-          return (
+      {/* ===== 错误提示 ===== */}
+      {errorMsg && !loading ? (
+        <View className="page-error">{errorMsg}</View>
+      ) : null}
+
+      {/* ===== 剧本列表 ===== */}
+      {loading && scripts.length === 0 ? (
+        <View className="lib-tip">加载中…</View>
+      ) : scripts.length === 0 && !errorMsg ? (
+        <View className="lib-empty">
+          <Text className="lib-empty-emoji">🔍</Text>
+          <Text className="lib-empty-title">
+            {hasActiveFilters ? "没有匹配的剧本" : "暂无剧本"}
+          </Text>
+          <Text className="lib-empty-desc">
+            {hasActiveFilters ? "试试调整或清除筛选条件" : "后续会持续更新剧本库"}
+          </Text>
+          {hasActiveFilters ? (
+            <View className="lib-empty-btn" onClick={clearAll}>
+              <Text className="lib-empty-btn-text">清除筛选</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : (
+        <View className="lib-list">
+          {scripts.map((s) => (
             <View
-              className="script-card"
               key={s.id}
+              className="lib-card"
               onClick={() => openDetail(s)}
             >
-              <View className="card-cover">
-                <Text className="cover-text">{(s.title || "本")[0]}</Text>
+              {/* 封面：有图用图，否则取标题首字渐变底 */}
+              <View className="lib-card-cover">
+                <Text className="lib-cover-text">
+                  {(s.title || "本")[0]}
+                </Text>
               </View>
 
-              <View className="card-body">
-                <View className="card-line">
-                  <Text className="card-title">{s.title || "未命名剧本"}</Text>
-                  <Text className={`card-badge ${tone}`}>
-                    {OVERALL_STATUS_TEXT[overall] ?? overall}
+              <View className="lib-card-body">
+                <View className="lib-card-head">
+                  <Text className="lib-card-title">
+                    {s.title || "未命名剧本"}
                   </Text>
+                  {s.hasGuide ? (
+                    <Text className="lib-badge-imported">已导入</Text>
+                  ) : null}
                 </View>
 
-                <View className="card-meta">
+                <View className="lib-card-meta">
                   {s.playerText ? (
-                    <Text className="meta-item">{s.playerText}</Text>
+                    <Text className="lib-meta-item">{s.playerText}</Text>
                   ) : null}
                   {s.durationText ? (
-                    <Text className="meta-item">{s.durationText}</Text>
+                    <Text className="lib-meta-item">{s.durationText}</Text>
                   ) : null}
-                  {s.status === "draft" ? (
-                    <Text className="meta-item is-draft">草稿</Text>
+                  {s.difficultyLabel ? (
+                    <Text className="lib-meta-item">
+                      {s.difficultyLabel}
+                    </Text>
                   ) : null}
-                  {!s.playerText && !s.durationText && s.author ? (
-                    <Text className="meta-item">{s.author}</Text>
+                  {s.author ? (
+                    <Text className="lib-meta-item">{s.author}</Text>
                   ) : null}
                 </View>
 
-                {/* 解析中：展示当前阶段 + 阶段内子进度。
-                    刻意不做全局百分比 —— 各阶段耗时差两个数量级，插值出来的数字会卡死不动 */}
-                {isParsing ? (
-                  <View className="card-progress">
-                    <View className="progress-track">
-                      <View
-                        className={`progress-fill${
-                          jobProg.indeterminate ? " is-indeterminate" : ""
-                        }`}
-                        style={{
-                          width: jobProg.indeterminate
-                            ? "0%"
-                            : `${Math.max(jobProg.percent, 4)}%`,
-                        }}
-                      />
-                    </View>
-                    <Text className="progress-text">
-                      {jobProg.text || "解析中"}
-                    </Text>
+                {/* 标签：玩法 + 题材 */}
+                {(s.playstyleLabels?.length || s.themeLabels?.length) ? (
+                  <View className="lib-card-tags">
+                    {s.playstyleLabels?.map((t) => (
+                      <Text key={`ps-${t.code}`} className="lib-tag">
+                        {t.label}
+                      </Text>
+                    ))}
+                    {s.themeLabels?.map((t) => (
+                      <Text key={`th-${t.code}`} className="lib-tag">
+                        {t.label}
+                      </Text>
+                    ))}
                   </View>
                 ) : null}
 
-                {overall === "failed" ? (
-                  <Text className="card-error">
-                    {job?.errorMessage || "解析失败，进入详情可重试"}
-                  </Text>
-                ) : null}
-
-                {overall === "ready" ? (
-                  <Text className="card-ready">已建索引 · 点击开始提问</Text>
-                ) : null}
-
-                {overall === "no_guide" ? (
-                  <Text className="card-hint">未关联 DM 手册，无法问答</Text>
+                {/* 评分 */}
+                {s.rating != null && s.rating > 0 ? (
+                  <View className="lib-card-rating">
+                    <Text className="lib-rating-text">
+                      ★ {s.rating.toFixed(1)}
+                    </Text>
+                    {s.ratingCount ? (
+                      <Text className="lib-rating-count">
+                        ({s.ratingCount})
+                      </Text>
+                    ) : null}
+                  </View>
                 ) : null}
               </View>
 
-              <View
-                className="card-del"
-                onClick={(e) => {
-                  // 阻止冒泡，避免误触打开详情
-                  if (e && typeof e.stopPropagation === "function")
-                    e.stopPropagation();
-                  handleDelete(s);
-                }}
-              >
-                <Text className="card-del-icon">🗑</Text>
-              </View>
-              <Text className="card-arrow">&#x203A;</Text>
+              <Text className="lib-card-arrow">&#x203A;</Text>
             </View>
-          );
-        })}
-      </ScrollView>
+          ))}
+
+          {/* 加载更多 / 到底提示 */}
+          {loadingMore ? (
+            <View className="lib-tip">加载中…</View>
+          ) : hasMore ? (
+            <View className="load-more-btn" onClick={handleLoadMore}>
+              <Text className="load-more-text">加载更多</Text>
+            </View>
+          ) : (
+            <View className="lib-tip lib-tip-end">没有更多了</View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
-export default ScriptsPage;
+export default ScriptLibraryPage;

@@ -1,91 +1,240 @@
-.scripts-page {
+/* ===== 剧本库页面 ===== */
+.library-page {
   min-height: 100vh;
   background: #f7f8fc;
-  padding: 16px 16px 24px;
+  padding-bottom: 30px;
   box-sizing: border-box;
 }
 
-/* ===== 页头 ===== */
-.page-head {
+/* ===== 搜索框（sticky，滚动时固定在顶部） ===== */
+.lib-search {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f7f8fc;
+  padding: 10px 16px 6px;
+}
+
+/* ===== 排序行 ===== */
+.sort-row {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  white-space: nowrap;
+  padding: 0 16px;
+  margin-bottom: 4px;
 }
 
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2330;
+.sort-chip {
+  display: inline-block;
+  padding: 5px 14px;
+  margin-right: 8px;
+  font-size: 13px;
+  color: #6b7080;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #eceef3;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &.is-active {
+    color: #ffffff;
+    background: #5b7cfa;
+    border-color: #5b7cfa;
+    font-weight: 600;
+  }
 }
 
-.page-count {
+/* ===== 筛选维度区 ===== */
+.filter-section {
+  padding: 4px 0 8px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 16px;
+}
+
+.filter-label {
+  font-size: 12px;
+  color: #9aa0ae;
+  width: 36px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.filter-chips {
+  flex: 1;
+  display: flex;
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* 隐藏滚动条 */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.f-chip {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-right: 8px;
+  font-size: 12px;
+  color: #5a6072;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e3e6ee;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &.is-active {
+    color: #5b7cfa;
+    background: rgba(91, 124, 250, 0.1);
+    border-color: #5b7cfa;
+    font-weight: 600;
+  }
+}
+
+/* ===== 已选筛选汇总条 ===== */
+.active-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 16px;
+  gap: 8px;
+}
+
+.active-chips {
+  flex: 1;
+  display: flex;
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  margin-right: 6px;
+  font-size: 12px;
+  color: #5b7cfa;
+  background: rgba(91, 124, 250, 0.1);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.active-chip-text {
+  font-size: 12px;
+  color: #5b7cfa;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-chip-x {
+  font-size: 11px;
+  color: #9aa0ae;
+  padding-left: 2px;
+}
+
+.clear-all-btn {
+  padding: 4px 10px;
+  background: rgba(229, 77, 66, 0.08);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.clear-all-text {
+  font-size: 12px;
+  color: #e54d42;
+  font-weight: 500;
+}
+
+/* ===== 结果计数 ===== */
+.result-info {
+  padding: 6px 16px 4px;
+}
+
+.result-count {
   font-size: 12px;
   color: #9aa0ae;
 }
 
-.page-tip {
-  padding: 40px 0;
-  text-align: center;
-  font-size: 13px;
-  color: #9aa0ae;
-}
-
+/* ===== 错误提示 ===== */
 .page-error {
   padding: 10px 12px;
-  margin-bottom: 12px;
+  margin: 0 16px 12px;
   border-radius: 10px;
   background: rgba(229, 77, 66, 0.08);
   color: #e54d42;
   font-size: 13px;
 }
 
+/* ===== 加载 / 空状态提示 ===== */
+.lib-tip {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #9aa0ae;
+}
+
+.lib-tip-end {
+  padding: 20px 0 24px;
+  font-size: 12px;
+}
+
 /* ===== 空状态 ===== */
-.empty-block {
-  padding: 64px 24px;
+.lib-empty {
+  padding: 56px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.empty-emoji {
-  font-size: 40px;
+.lib-empty-emoji {
+  font-size: 36px;
   line-height: 1;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
-.empty-title {
+.lib-empty-title {
   font-size: 15px;
   font-weight: 600;
   color: #3d4252;
   margin-bottom: 6px;
 }
 
-.empty-desc {
+.lib-empty-desc {
   font-size: 12px;
   color: #9aa0ae;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-.empty-btn {
-  padding: 9px 26px;
-  border-radius: 20px;
+.lib-empty-btn {
+  padding: 8px 22px;
+  border-radius: 18px;
   background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
 }
 
-.empty-btn-text {
+.lib-empty-btn-text {
   font-size: 14px;
   color: #ffffff;
   font-weight: 600;
 }
 
-/* ===== 卡片列表 ===== */
-.script-list {
-  max-height: calc(100% - 80px);
+/* ===== 剧本卡片列表 ===== */
+.lib-list {
+  padding: 0 16px;
 }
 
-.script-card {
+.lib-card {
   display: flex;
   align-items: center;
   padding: 14px;
@@ -93,9 +242,14 @@
   background: #ffffff;
   border-radius: 14px;
   box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+  transition: transform 0.1s ease;
+
+  &:active {
+    transform: scale(0.99);
+  }
 }
 
-.card-cover {
+.lib-card-cover {
   width: 44px;
   height: 44px;
   flex-shrink: 0;
@@ -107,164 +261,120 @@
   margin-right: 12px;
 }
 
-.cover-text {
+.lib-cover-text {
   font-size: 18px;
   font-weight: 700;
   color: #ffffff;
 }
 
-.card-body {
+.lib-card-body {
   flex: 1;
   min-width: 0;
 }
 
-.card-line {
+.lib-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
-.card-title {
+.lib-card-title {
   font-size: 15px;
   font-weight: 600;
   color: #1f2330;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 60%;
+  flex: 1;
+  min-width: 0;
 }
 
-/* ===== 状态徽章 ===== */
-.card-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-.card-badge.is-ready {
+/* 已导入徽章 */
+.lib-badge-imported {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 8px;
   color: #12a150;
   background: rgba(18, 161, 80, 0.1);
+  flex-shrink: 0;
+  font-weight: 600;
 }
 
-.card-badge.is-parsing {
-  color: #5b7cfa;
-  background: rgba(91, 124, 250, 0.1);
-}
-
-.card-badge.is-failed {
-  color: #e54d42;
-  background: rgba(229, 77, 66, 0.1);
-}
-
-.card-badge.is-idle {
-  color: #9aa0ae;
-  background: rgba(154, 160, 174, 0.12);
-}
-
-/* ===== 元信息 ===== */
-.card-meta {
+/* 元信息行 */
+.lib-card-meta {
   display: flex;
   flex-wrap: wrap;
   margin-top: 5px;
+  gap: 4px 0;
 }
 
-.meta-item {
+.lib-meta-item {
   font-size: 11px;
   color: #9aa0ae;
   margin-right: 10px;
 }
 
-.meta-item.is-draft {
-  color: #d98b13;
-}
-
-/* ===== 进度 ===== */
-.card-progress {
-  margin-top: 8px;
-}
-
-.progress-track {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(91, 124, 250, 0.14);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
-  transition: width 0.4s ease;
-}
-
-/* 不确定进度态：有实时计数但无总条数可量化，用滑动动效代替静止百分比 */
-.progress-fill.is-indeterminate {
-  width: 35% !important;
-  animation: dm-progress-slide 1.3s ease-in-out infinite;
-}
-
-@keyframes dm-progress-slide {
-  0% {
-    transform: translateX(-110%);
-  }
-  100% {
-    transform: translateX(290%);
-  }
-}
-
-.progress-text {
-  display: block;
-  margin-top: 5px;
-  font-size: 11px;
-  color: #5b7cfa;
-}
-
-.card-error {
-  display: block;
+/* 标签行 */
+.lib-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
   margin-top: 6px;
-  font-size: 11px;
-  color: #e54d42;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.card-ready {
-  display: block;
-  margin-top: 6px;
-  font-size: 11px;
-  color: #12a150;
+.lib-tag {
+  font-size: 10px;
+  color: #6b7080;
+  background: #f4f5f8;
+  padding: 2px 7px;
+  border-radius: 8px;
 }
 
-.card-hint {
-  display: block;
+/* 评分 */
+.lib-card-rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
   margin-top: 6px;
-  font-size: 11px;
+}
+
+.lib-rating-text {
+  font-size: 12px;
+  color: #f5a623;
+  font-weight: 600;
+}
+
+.lib-rating-count {
+  font-size: 10px;
   color: #b6bac6;
 }
 
-.card-arrow {
+/* 箭头 */
+.lib-card-arrow {
   font-size: 20px;
   color: #c8ccd6;
   margin-left: 8px;
   flex-shrink: 0;
 }
 
-/* ===== 删除按钮 ===== */
-.card-del {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  margin-left: 4px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(229, 77, 66, 0.08);
+/* ===== 加载更多按钮 ===== */
+.load-more-btn {
+  padding: 12px;
+  margin: 4px 0 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #eceef3;
+  transition: opacity 0.15s ease;
+
+  &:active {
+    opacity: 0.7;
+  }
 }
 
-.card-del-icon {
-  font-size: 15px;
-  line-height: 1;
+.load-more-text {
+  font-size: 14px;
+  color: #5b7cfa;
+  font-weight: 500;
 }

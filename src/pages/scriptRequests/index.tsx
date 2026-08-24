@@ -19,6 +19,7 @@ import {
 } from "../../services/scriptRequest";
 import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
+import { usePageMeta } from "../../hooks/usePageMeta";
 import "./index.less";
 
 /** 状态徽章的视觉与文案 */
@@ -41,6 +42,10 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 function ScriptRequestsPage() {
+  usePageMeta(
+    "我的求解析 · 剧本杀复盘助手",
+    "追踪你发起的剧本解析诉求，剧本解析完成后即可进入详情问答。"
+  );
   const { isAuthenticated, status: authStatus } = useAuth();
   const [items, setItems] = useState<ScriptRequestItem[]>([]);
   const [filter, setFilter] = useState<Filter>("all");

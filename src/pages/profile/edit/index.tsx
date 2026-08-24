@@ -28,6 +28,7 @@ import {
   type Profile,
   type ProfilePatch,
 } from '../../../services/auth'
+import { usePageMeta } from '../../../hooks/usePageMeta'
 import './index.less'
 
 const NICKNAME_MAX = 30
@@ -96,6 +97,10 @@ const GENDER_OPTIONS: Array<{ value: Gender; label: string }> = [
 ]
 
 export default function EditProfilePage() {
+  usePageMeta(
+    '编辑资料 · 剧本杀复盘助手',
+    '修改昵称、头像与个人资料，社区贡献与提问解答都会展示这些信息。'
+  )
   const { user, refreshUser } = useAuth()
 
   const [loading, setLoading] = useState(true)

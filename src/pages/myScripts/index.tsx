@@ -29,6 +29,7 @@ import {
 import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
 import { usePolling } from "../../hooks/usePolling";
+import { usePageMeta } from "../../hooks/usePageMeta";
 import "./index.less";
 
 /** 状态徽章的视觉分组 */
@@ -45,6 +46,10 @@ const STATUS_TONE: Record<string, string> = {
 const POLL_INTERVAL = 5000;
 
 function MyScriptsPage() {
+  usePageMeta(
+    "我的剧本 · 剧本杀复盘助手",
+    "查看我导入的剧本与解析进度，解析完成即可进入 AI 问答。"
+  );
   const { isAuthenticated, status: authStatus } = useAuth();
   const [scripts, setScripts] = useState<ScriptItemCamel[]>([]);
   const [statusMap, setStatusMap] = useState<Record<string, ImportStatus>>({});

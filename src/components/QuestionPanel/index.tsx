@@ -13,7 +13,7 @@
  *  - 已解答：默认折叠答案，点「展开答案」查看，含答的人信息与解答时间。
  *  - 待解答 + 已登录：卡片底部出现「我来回答」按钮，点开后内联输入框 + 提交。
  *    提交成功后该条原地变成已解答态，无需重新拉列表。
- *  - 未登录：不显示回答入口，引导先去登录。
+ *  - 未登录：列表接口需鉴权，面板不发请求，整体展示登录引导；
  *  - 分页：底部「加载更多」按钮，追加到列表尾。
  */
 
@@ -119,7 +119,8 @@ export default function QuestionPanel({
   /** 拉首页数据（切 tab / 首次打开时调用） */
   const loadFirst = useCallback(
     async (filter: QuestionStatusFilter) => {
-      if (!scriptCode) return;
+      // /dm-guide/questions 需要登录，未登录时直接不发请求（避免 401 → 刷新 → 失败的死循环）
+      if (!scriptCode || !isAuthenticated) return;
       setLoading(true);
       setError("");
       try {
@@ -141,15 +142,15 @@ export default function QuestionPanel({
         if (mountedRef.current) setLoading(false);
       }
     },
-    [scriptCode]
+    [scriptCode, isAuthenticated]
   );
 
-  /** 首次打开时拉数据 */
+  /** 首次打开时拉数据（仅登录后；登录态变化时会补拉） */
   useEffect(() => {
-    if (open && !fetched && !loading) {
+    if (open && isAuthenticated && !fetched && !loading) {
       void loadFirst(statusFilter);
     }
-  }, [open, fetched, loading, loadFirst, statusFilter]);
+  }, [open, isAuthenticated, fetched, loading, loadFirst, statusFilter]);
 
   /** 切 tab */
   const handleTabChange = useCallback(
@@ -424,7 +425,19 @@ export default function QuestionPanel({
 
         {/* 列表 */}
         <ScrollView className="q-panel-body" scrollY>
-          {loading && !items.length ? (
+          {!isAuthenticated ? (
+            /* 未登录：接口需鉴权，不发请求，直接展示登录引导 */
+            <View className="q-panel-tip">
+              <Text className="q-panel-tip-emoji">🔐</Text>
+              <Text className="q-panel-tip-text">登录后查看用户提问</Text>
+              <Text className="q-panel-tip-desc">
+                登录后可以查看大家的问题，还能解答别人的疑惑
+              </Text>
+              <View className="q-panel-retry" onClick={() => goLogin()}>
+                <Text className="q-panel-retry-text">去登录</Text>
+              </View>
+            </View>
+          ) : loading && !items.length ? (
             <View className="q-panel-tip">正在加载…</View>
           ) : error && !items.length ? (
             <View className="q-panel-tip is-error">

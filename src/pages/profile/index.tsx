@@ -18,6 +18,7 @@ import {
   type ScriptItemCamel,
 } from '../../services/script'
 import type { UploadResult } from '../../utils/ossMultipartUpload'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import { replayActiveTabIcon } from '../../utils/replayActiveTabIcon'
 import './index.less'
 
@@ -29,6 +30,10 @@ const GENDER_LABEL: Record<string, string> = {
 
 function ProfilePage() {
   useDidShow(replayActiveTabIcon);
+  usePageMeta(
+    '我的 · 剧本杀复盘助手',
+    '管理账号资料，导入 DM 主持人手册共建知识库，查看我的剧本与求解析进度。'
+  );
   const { status, user, isAuthenticated, logout } = useAuth()
 
   // 导入 DM 指南后「匹配剧本 → 填表 → 提交」流程的上下文

@@ -4,6 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro'
 import { useAuth } from '../../store/auth'
 import { toFriendlyMessage } from '../../services/auth'
 import { HOME_PAGE, PASSWORD_MIN_LENGTH } from '../../constants/auth'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import './index.less'
 
 type Mode = 'login' | 'register'
@@ -12,6 +13,10 @@ type Mode = 'login' | 'register'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 function Login() {
+  usePageMeta(
+    '登录 · 剧本杀复盘助手',
+    '登录后即可导入 DM 主持人手册、参与提问解答并同步你的剧本。'
+  )
   const router = useRouter()
   const { login, register } = useAuth()
 

@@ -8,6 +8,14 @@
  *
  * 手册未建好索引时不放开输入框：那时候提问必然是空答，不如把解析进度显示清楚。
  *
+ * 冷启动引导（intro 区，仅在还没有任何消息时展示，用户提出第一个问题后随之清除）：
+ *   - 引导问题来自 `GET /dm-guide/guide-questions`（用户真实提问人气 Top3，
+ *     公开接口）。已解答的直接展开真人答案——这些答案不在向量库里，
+ *     走检索反而查不到；未解答的作为普通建议问题发起提问。
+ *     拉取失败或没有数据时回退到内置的通用建议。
+ *   - 手册导入者信息（头像 + 昵称 + 感谢）来自 import-status 的
+ *     dmGuide.importedBy* 字段，向共建者致谢；无导入者信息时不展示。
+ *
  * 会话按剧本持久化到 localStorage（`dm_chat_{code}`，最多保留最近 50 条），
  * 退出重进不丢记录；ready-bar 提供「清除会话」（二次确认后连存档一起删）。
  */
@@ -18,6 +26,7 @@ import Taro, { useRouter } from "@tarojs/taro";
 import { fetchScriptDetail, type ScriptItemCamel } from "../../services/script";
 import {
   askScriptQuestion,
+  fetchGuideQuestions,
   fetchImportStatus,
   fetchQaTitleChain,
   ingestDmGuide,
@@ -30,19 +39,25 @@ import {
   type QATitleChain,
   type QATitleItem,
   type QATitleNode,
+  type QuestionRecord,
 } from "../../services/dmGuide";
 import { ApiError } from "../../services/request";
 import { useAuth } from "../../store/auth";
 import { usePolling } from "../../hooks/usePolling";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import Avatar from "../../components/Avatar";
 import QuestionPanel from "../../components/QuestionPanel";
 import "./index.less";
+
+/** 聊天气泡的答案来路：手册原文 / AI 生成 / 无结果 / 社区真人解答（引导问题直出） */
+type ChatSource = AnswerSource | "human";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  /** 答案来路：手册原文 / AI 生成 / 无结果 */
-  source?: AnswerSource;
+  /** 答案来路：手册原文 / AI 生成 / 无结果 / 用户解答 */
+  source?: ChatSource;
   similarity?: number;
   matchedQuestion?: string;
   sources?: AskSource[];
@@ -50,24 +65,22 @@ interface ChatMessage {
   isError?: boolean;
 }
 
-const SOURCE_LABEL: Record<AnswerSource, string> = {
+const SOURCE_LABEL: Record<ChatSource, string> = {
   manual: "手册原文",
   ai: "AI 生成",
   none: "未命中",
+  human: "用户解答",
 };
 
-const SOURCE_TONE: Record<AnswerSource, string> = {
+const SOURCE_TONE: Record<ChatSource, string> = {
   manual: "is-manual",
   ai: "is-ai",
   none: "is-none",
+  human: "is-manual",
 };
 
-/** 手册就绪后给的引导问法，降低「不知道能问什么」的冷启动成本 */
-const SUGGESTED = [
-  "本案凶手是谁？",
-  "第二幕的流程是什么？",
-  "玩家问不出线索怎么办？",
-];
+/** 手册就绪后的兜底引导问法（guide-questions 没有数据或拉取失败时使用） */
+const SUGGESTED = [];
 
 const POLL_INTERVAL = 5000;
 
@@ -98,7 +111,9 @@ function loadPersistedChat(scriptCode: string): PersistedChat | null {
   try {
     const raw = Taro.getStorageSync(chatStorageKey(scriptCode));
     if (!raw) return null;
-    const data = (typeof raw === "string" ? JSON.parse(raw) : raw) as PersistedChat;
+    const data = (
+      typeof raw === "string" ? JSON.parse(raw) : raw
+    ) as PersistedChat;
     if (!data || !Array.isArray(data.messages)) return null;
     return data;
   } catch {
@@ -133,6 +148,14 @@ function ScriptDetailPage() {
 
   const { isAuthenticated } = useAuth();
   const [script, setScript] = useState<ScriptItemCamel | null>(null);
+
+  /* 页面标题 / 描述：详情加载完成后随剧本名更新 */
+  const metaTitle = script?.title || presetTitle || "剧本详情";
+  usePageMeta(
+    `${metaTitle} · 剧本杀复盘助手`,
+    `《${metaTitle}》DM 主持人手册智能问答：优先命中手册原文，未命中再由大模型作答，支持查看问答目录。`
+  );
+
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -171,6 +194,11 @@ function ScriptDetailPage() {
 
   /* 用户提问面板：与问答目录平行的底部抽屉，展示待解答问题池并支持真人解答 */
   const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
+
+  /* 引导问题（/guide-questions，公开接口）：用户真实提问人气 Top3。
+   * 仅作为 intro 冷启动引导展示，用户提出第一个问题后随 intro 一并消失。 */
+  const [guideQuestions, setGuideQuestions] = useState<QuestionRecord[]>([]);
+  const [guideFetched, setGuideFetched] = useState(false);
 
   const mountedRef = useRef(true);
 
@@ -245,7 +273,6 @@ function ScriptDetailPage() {
         const detail = await fetchScriptDetail(scriptCode);
         if (!alive) return;
         setScript(detail);
-        Taro.setNavigationBarTitle({ title: detail.title || "剧本详情" });
         await loadStatus();
       } catch (err) {
         if (!alive) return;
@@ -277,6 +304,20 @@ function ScriptDetailPage() {
   const dmGuide = (importStatus?.dmGuide ?? {}) as Record<string, any>;
   const job = dmGuide.job as any;
   const jobProg = resolveJobProgress(job);
+
+  /* 手册导入者展示信息（感谢卡片用）：老数据或系统导入时字段为空、不展示 */
+  const importerName =
+    typeof dmGuide.importedByNickname === "string"
+      ? dmGuide.importedByNickname
+      : "";
+  const importerAvatarUrl =
+    typeof dmGuide.importedByAvatarUrl === "string"
+      ? dmGuide.importedByAvatarUrl
+      : null;
+  const importerAvatarColor =
+    typeof dmGuide.importedByAvatarColor === "number"
+      ? dmGuide.importedByAvatarColor
+      : null;
 
   /* ------------------------------ 提问 ------------------------------ */
 
@@ -388,6 +429,62 @@ function ScriptDetailPage() {
   useEffect(() => {
     if (isReady) void loadCatalog();
   }, [isReady, loadCatalog]);
+
+  /* ---------------------------- 引导问题（/guide-questions） ---------------------------- */
+
+  /**
+   * 手册就绪后拉取用户真实提问 Top3 作为冷启动引导（公开接口，未登录可读）。
+   * 拉取失败或没有数据时静默回退到内置建议，不影响问答主流程；
+   * 只在 intro（还没有任何消息）时展示，用户提出第一个问题后随 intro 一并清除。
+   */
+  useEffect(() => {
+    if (!isReady || !scriptCode || guideFetched) return;
+    let alive = true;
+    fetchGuideQuestions(scriptCode, { title: script?.title || presetTitle })
+      .then((res) => {
+        if (!alive) return;
+        setGuideQuestions(res.items ?? []);
+        setGuideFetched(true);
+      })
+      .catch(() => {
+        if (alive) setGuideFetched(true);
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, scriptCode, guideFetched]);
+
+  /**
+   * 点引导问题：
+   *   - 已有真人解答 → 答案直接落成消息（标「用户解答」）。这些答案不在
+   *     向量库里，走检索反而查不到，白花一次 embedding 还多半落空；
+   *   - 未解答 → 作为普通问题发起提问（走两级检索链路）。
+   */
+  const handleGuideAsk = useCallback(
+    (g: QuestionRecord) => {
+      if (g.status === "answered" && g.answer?.trim()) {
+        const userMsg: ChatMessage = {
+          id: nextId(),
+          role: "user",
+          content: g.question,
+        };
+        const reply: ChatMessage = {
+          id: nextId(),
+          role: "assistant",
+          content: g.answer,
+          source: "human",
+          similarity: 1,
+          matchedQuestion: g.question,
+        };
+        setMessages((prev) => [...prev, userMsg, reply]);
+        setScrollTarget(reply.id);
+        return;
+      }
+      void submitQuestion(g.question);
+    },
+    [submitQuestion]
+  );
 
   /** 打开抽屉；数据若尚未预载完成则兜底再触发一次（loadCatalog 内部去重） */
   const openCatalog = useCallback(() => {
@@ -585,7 +682,10 @@ function ScriptDetailPage() {
                 <Text className="clear-btn-text">清除会话</Text>
               </View>
             ) : null}
-            <View className="qpanel-btn" onClick={() => setQuestionPanelOpen(true)}>
+            <View
+              className="qpanel-btn"
+              onClick={() => setQuestionPanelOpen(true)}
+            >
               <Text className="qpanel-btn-text">❓ 用户提问</Text>
             </View>
             <View className="catalog-btn" onClick={openCatalog}>
@@ -603,6 +703,8 @@ function ScriptDetailPage() {
         scrollWithAnimation
       >
         {!messages.length ? (
+          /* 冷启动引导（引导问题 + 导入者致谢）：仅在还没有任何消息时展示，
+           * 用户提出第一个问题（或点击引导问题）后随本区块一并清除。 */
           <View className="chat-intro">
             <Text className="intro-emoji">💬</Text>
             <Text className="intro-title">问问这本的手册</Text>
@@ -612,16 +714,49 @@ function ScriptDetailPage() {
             </Text>
             {isReady ? (
               <>
+                {importerName ? (
+                  <View className="importer-card">
+                    <Avatar
+                      name={importerName}
+                      url={importerAvatarUrl}
+                      color={importerAvatarColor}
+                      size={26}
+                    />
+                    <Text className="importer-text">
+                      感谢 {importerName} 导入手册
+                    </Text>
+                  </View>
+                ) : null}
                 <View className="suggest-list">
-                  {SUGGESTED.map((s) => (
-                    <View
-                      className="suggest-item"
-                      key={s}
-                      onClick={() => submitQuestion(s)}
-                    >
-                      <Text className="suggest-text">{s}</Text>
-                    </View>
-                  ))}
+                  {guideQuestions.length ? (
+                    <>
+                      <Text className="suggest-label">大家在问</Text>
+                      {guideQuestions.map((g) => (
+                        <View
+                          className="suggest-item"
+                          key={g.id}
+                          onClick={() => handleGuideAsk(g)}
+                        >
+                          <Text className="suggest-text">{g.question}</Text>
+                          <Text className="suggest-meta">
+                            {g.status === "answered"
+                              ? "已解答 · 点击查看"
+                              : `被问 ${g.askCount ?? 1} 次`}
+                          </Text>
+                        </View>
+                      ))}
+                    </>
+                  ) : (
+                    SUGGESTED.map((s) => (
+                      <View
+                        className="suggest-item"
+                        key={s}
+                        onClick={() => submitQuestion(s)}
+                      >
+                        <Text className="suggest-text">{s}</Text>
+                      </View>
+                    ))
+                  )}
                 </View>
                 <View className="catalog-link" onClick={openCatalog}>
                   <Text className="catalog-link-text">

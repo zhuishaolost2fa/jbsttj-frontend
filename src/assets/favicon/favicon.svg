@@ -1,0 +1,17 @@
+<!-- 剧本杀复盘助手 favicon · 侦探面具
+     品牌蓝 #5b7cfa 圆角方块 + 白色多米诺面具（眼睛为蓝色镂空）。
+     生成脚本：scripts/gen-favicon.js（渲染 favicon-32.png / apple-touch-icon.png / favicon.ico）。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="116" fill="#5b7cfa"/>
+  <path fill="#ffffff" d="M96 248
+    C 96 204 160 188 256 188
+    C 352 188 416 204 416 248
+    C 416 308 376 356 312 356
+    C 288 356 276 340 268 326
+    L 244 326
+    C 236 340 224 356 200 356
+    C 136 356 96 308 96 248
+    Z"/>
+  <ellipse cx="180" cy="270" rx="40" ry="30" fill="#5b7cfa"/>
+  <ellipse cx="332" cy="270" rx="40" ry="30" fill="#5b7cfa"/>
+</svg>

@@ -14,6 +14,7 @@ import Taro from '@tarojs/taro'
 import { useAuth } from '../../../store/auth'
 import { changePassword, changeEmail, toFriendlyMessage } from '../../../services/auth'
 import { PASSWORD_MIN_LENGTH } from '../../../constants/auth'
+import { usePageMeta } from '../../../hooks/usePageMeta'
 import './index.less'
 
 function passwordStrength(password: string): { level: 0 | 1 | 2 | 3; tip: string } {
@@ -29,6 +30,10 @@ function passwordStrength(password: string): { level: 0 | 1 | 2 | 3; tip: string
 }
 
 export default function SecurityPage() {
+  usePageMeta(
+    '账号安全 · 剧本杀复盘助手',
+    '修改登录密码与绑定邮箱，保护你的账号与导入记录。'
+  )
   const { user } = useAuth()
 
   const [curPwd, setCurPwd] = useState('')

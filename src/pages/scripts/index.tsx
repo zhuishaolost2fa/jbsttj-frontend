@@ -27,11 +27,16 @@ import {
 } from "../../services/scriptRequest";
 import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
+import { usePageMeta } from "../../hooks/usePageMeta";
 import { replayActiveTabIcon } from "../../utils/replayActiveTabIcon";
 import "./index.less";
 
 function ScriptLibraryPage() {
   useDidShow(replayActiveTabIcon);
+  usePageMeta(
+    "剧本库 · 剧本杀复盘助手",
+    "浏览已完成解析的剧本杀手册，进入详情即可向 AI 提问，快速查证玩法、剧情与线索。"
+  );
   const { isAuthenticated } = useAuth();
   /* ----------------------------- 列表状态 ----------------------------- */
   const [scripts, setScripts] = useState<ScriptItemCamel[]>([]);
@@ -285,18 +290,22 @@ function ScriptLibraryPage() {
         />
       </View>
 
-      {/* ===== 结果计数 ===== */}
-      <View className="result-info">
-        {loading ? (
-          <Text className="result-count">加载中…</Text>
-        ) : kw.length > 0 ? (
-          <Text className="result-count">
-            搜索「{kw}」· 共 {total} 个
-          </Text>
-        ) : (
-          <Text className="result-count">已解析剧本 · 共 {total} 个</Text>
-        )}
-      </View>
+      {/* ===== 结果计数 =====
+          首屏加载（无已有内容）时整个隐藏，由下方列表区的「加载中…」唯一提示，
+          避免同屏出现两个加载指示；刷新/搜索已有内容时这里才是唯一的加载提示 */}
+      {!(loading && scripts.length === 0) ? (
+        <View className="result-info">
+          {loading ? (
+            <Text className="result-count">加载中…</Text>
+          ) : kw.length > 0 ? (
+            <Text className="result-count">
+              搜索「{kw}」· 共 {total} 个
+            </Text>
+          ) : (
+            <Text className="result-count">已解析剧本 · 共 {total} 个</Text>
+          )}
+        </View>
+      ) : null}
 
       {/* ===== 错误提示 ===== */}
       {errorMsg && !loading ? (

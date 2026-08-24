@@ -1,7 +1,32 @@
 import { defineConfig, type UserConfigExport } from '@tarojs/cli'
+import type { Plugin } from 'vite'
+import * as path from 'node:path'
 import devConfig from './dev'
 import prodConfig from './prod'
 import vitePluginImp from 'vite-plugin-imp'
+
+/**
+ * ARMS 监控 SDK 平台分流（构建期裁剪）：
+ * Taro 不支持 #ifdef 条件编译注释，因此用 vite alias 把"非当前构建平台"的
+ * ARMS SDK 包替换为 no-op stub（src/monitor/arms-stub.ts）：
+ *  - H5 构建：@arms/rum-miniapp → stub（产物只含 @arms/rum-browser）
+ *  - 小程序构建：@arms/rum-browser → stub（产物只含 @arms/rum-miniapp）
+ */
+function armsPlatformAlias(): Plugin {
+  const isH5 = process.env.TARO_ENV === 'h5'
+  const stubPath = path.resolve(__dirname, '../src/monitor/arms-stub.ts')
+  return {
+    name: 'arms-platform-alias',
+    config: () => ({
+      resolve: {
+        alias: isH5
+          ? [{ find: /^@arms\/rum-miniapp$/, replacement: stubPath }]
+          : [{ find: /^@arms\/rum-browser$/, replacement: stubPath }],
+      },
+    }),
+  }
+}
+
 // https://taro-docs.jd.com/docs/next/config#defineconfig-辅助函数
 export default defineConfig<'vite'>(async (merge, { command, mode }) => {
   const baseConfig: UserConfigExport<'vite'> = {
@@ -24,17 +49,31 @@ export default defineConfig<'vite'>(async (merge, { command, mode }) => {
       // 仅在 shell 中存在该变量时才定义，避免覆盖 .env 文件的取值。
       ...(process.env.TARO_APP_API_ORIGIN
         ? { 'process.env.TARO_APP_API_ORIGIN': JSON.stringify(process.env.TARO_APP_API_ORIGIN) }
+        : {}),
+      // ARMS 上报环境标识（'prod' | 'gray' | 'pre' | 'daily' | 'local'），
+      // 与 API_ORIGIN 同机制：shell(CI) > .env > 代码默认值 'prod'。
+      ...(process.env.TARO_APP_ARMS_ENV
+        ? { 'process.env.TARO_APP_ARMS_ENV': JSON.stringify(process.env.TARO_APP_ARMS_ENV) }
         : {})
     },
     copy: {
+      // favicon 静态资源拷到 dist 根目录：走 vite-plugin-static-copy，
+      // dev:h5（--watch）与 build:h5 都会执行；scripts/copy-favicon.js 仅作
+      // postbuild 兜底。link 标签由 src/app.ts 运行时注入（构建会篡改模板 href）。
       patterns: [
+        { from: 'src/assets/favicon/favicon.ico', to: 'dist/favicon.ico' },
+        { from: 'src/assets/favicon/favicon.svg', to: 'dist/favicon.svg' },
+        { from: 'src/assets/favicon/favicon-32.png', to: 'dist/favicon-32.png' },
+        { from: 'src/assets/favicon/apple-touch-icon.png', to: 'dist/apple-touch-icon.png' },
       ],
       options: {
       }
     },
     framework: 'react',
     compiler: {
-      vitePlugins: [vitePluginImp({
+      vitePlugins: [
+        armsPlatformAlias(),
+        vitePluginImp({
         libList: [
           {
             libName: '@nutui/nutui-react-taro',

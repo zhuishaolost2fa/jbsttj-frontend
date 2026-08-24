@@ -22,7 +22,12 @@
 - 解决：`config/index.ts` 的 `defineConstants` 在 `process.env.TARO_APP_API_ORIGIN` 有值时显式 `JSON.stringify` 注入；无值时不定义以让 .env/默认值兜底。优先级 shell(CI) > .env > 默认值。
 - Vercel 改后端地址：Project Settings → Environment Variables 加 `TARO_APP_API_ORIGIN`=<域名>，重新触发部署（构建期注入）。
 - `vercel.json`：framework=null，build=`npm run build:h5`，output=`dist`，SPA catch-all rewrite，`/js/ /css/` immutable 一年缓存。`.vercelignore` 排除 node_modules/dist/.git/.workbuddy/docs。
-- 本地构建前需手动 `rm -rf dist`（Taro 清空 dist 会触发沙箱 safe-delete 拦截）。
+- 本地构建：`rm -rf dist` 会被沙箱 safe-delete 拦截报错，但目录实际常已被删除；失败后直接 `npm run build:h5` 即可（Taro 不清空 dist 时 build 自身不会触发拦截）。
+
+## 页面元信息 / 问答页引导（2026-08-24）
+- 全站页面 title/description 统一走 `src/hooks/usePageMeta.ts`（H5 守卫，设 document.title + meta description + og 标签）；新页面接入只需在组件体顶部调用一次 hook。
+- 问答页冷启动引导：`fetchGuideQuestions(code)`（公开接口，静默失败回退硬编码建议）；已解答问题的真人答案**不在向量库**，点击时直接落聊天消息（`source="human"` 标签「用户解答」），不走检索。
+- QuestionPanel：`/dm-guide/questions` 需登录——未登录必须不发请求（401→refresh 失败→死循环加载），`loadFirst` 与 effect 都要 `isAuthenticated` 守卫，渲染层给登录引导分支。
 
 ## 用户信息编辑功能（全栈）
 - 后端 `app/api/v1/auth.py`：`GET/PATCH /auth/me`（PATCH 支持 `If-Match: <updated_at>` 乐观并发，冲突返回 409 `stale_profile`）、`POST /auth/change-password`、`POST /auth/change-email`。字段全 snake_case。

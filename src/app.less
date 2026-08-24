@@ -1,3 +1,9 @@
+/* 禁用双击缩放（配合 meta viewport 与 app.ts 的 gesture 拦截，实现全面禁缩放） */
+html,
+body {
+  touch-action: manipulation;
+}
+
 .taro_router.taro_router > .taro_page {
   z-index: unset;
 }

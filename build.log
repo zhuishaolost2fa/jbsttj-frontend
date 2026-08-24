@@ -1,44 +1,18 @@
 
 > jbsttj-frontend@1.0.0 build:h5
-> taro build --type h5
+> taro build --type h5 && node scripts/copy-favicon.js
 
 👽 Taro v4.2.1
 
-(node:27664) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(node:27476) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-C:\Users\Administrator\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\genie-safe-delete.cjs:270
-        throw new Error(`[safe-delete] 操作失败: ${detail || e.message}`);
-              ^
-
-Error: [safe-delete] 操作失败: Command failed: C:\Users\Administrator\AppData\Local\Programs\WorkBuddy\resources\vendor\genie-trash\win32-x64.exe c:\Applications\works\jbsttj-frontend\dist\index.html
-    at trashViaBinary (C:\Users\Administrator\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\genie-safe-delete.cjs:270:15)
-    at trashItem (C:\Users\Administrator\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\genie-safe-delete.cjs:283:9)
-    at tryTrash (C:\Users\Administrator\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\genie-safe-delete.cjs:547:5)
-    at Object.<anonymous> (C:\Users\Administrator\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\genie-safe-delete.cjs:609:9)
-    at c:\Applications\works\jbsttj-frontend\node_modules\@tarojs\helper\src\utils.ts:397:12
-    at Array.forEach (<anonymous>)
-    at Object.emptyDirectory (c:\Applications\works\jbsttj-frontend\node_modules\@tarojs\helper\src\utils.ts:371:29)
-    at H5.emptyOutputDir (c:\Applications\works\jbsttj-frontend\node_modules\@tarojs\service\src\platform-plugin-base\platform.ts:72:17)
-    at H5.setupWebApp (c:\Applications\works\jbsttj-frontend\node_modules\@tarojs\service\src\platform-plugin-base\web.ts:29:12)
-    at Transaction.<anonymous> (c:\Applications\works\jbsttj-frontend\node_modules\@tarojs\service\src\platform-plugin-base\platform.ts:19:14)
-
-Node.js v22.22.2
-dist/[22m[35mcss/index.d258e426.css                [39m[1m[2m  4.82 kB[22m[1m[22m[2m │ gzip:   1.20 kB[22m
-[2m../dist/[22m[35mcss/index.f7cea005.css                [39m[1m[2m  5.03 kB[22m[1m[22m[2m │ gzip:   1.26 kB[22m
-[2m../dist/[22m[35mcss/index.e3a27093.css                [39m[1m[2m  6.63 kB[22m[1m[22m[2m │ gzip:   1.45 kB[22m
-[2m../dist/[22m[35mcss/index.63241041.css                [39m[1m[2m 10.95 kB[22m[1m[22m[2m │ gzip:   1.88 kB[22m
-[2m../dist/[22m[35mcss/index.4014d968.css                [39m[1m[2m 14.17 kB[22m[1m[22m[2m │ gzip:   2.69 kB[22m
-[2m../dist/[22m[35mcss/index.4d953357.css                [39m[1m[2m 19.18 kB[22m[1m[22m[2m │ gzip:   3.08 kB[22m
-[2m../dist/[22m[35mcss/vendors.d1b7b1b8.css              [39m[1m[2m 37.26 kB[22m[1m[22m[2m │ gzip:   7.47 kB[22m
-[2m../dist/[22m[36mjs/index.6ea6bf53.js                  [39m[1m[2m  4.76 kB[22m[1m[22m[2m │ gzip:   1.79 kB[22m
-[2m../dist/[22m[36mjs/index.107217e7.js                  [39m[1m[2m  5.63 kB[22m[1m[22m[2m │ gzip:   1.78 kB[22m
-[2m../dist/[22m[36mjs/index.786221f0.js                  [39m[1m[2m  6.36 kB[22m[1m[22m[2m │ gzip:   2.34 kB[22m
-[2m../dist/[22m[36mjs/index.3e3fb3ca.js                  [39m[1m[2m  6.89 kB[22m[1m[22m[2m │ gzip:   2.66 kB[22m
-[2m../dist/[22m[36mjs/index.639a6a03.js                  [39m[1m[2m  7.45 kB[22m[1m[22m[2m │ gzip:   2.04 kB[22m
-[2m../dist/[22m[36mjs/index.60e9070f.js                  [39m[1m[2m  9.72 kB[22m[1m[22m[2m │ gzip:   3.04 kB[22m
-[2m../dist/[22m[36mjs/index.e9fb2e26.js                  [39m[1m[2m 15.55 kB[22m[1m[22m[2m │ gzip:   5.47 kB[22m
-[2m../dist/[22m[36mjs/index.36b1de52.js                  [39m[1m[2m 24.06 kB[22m[1m[22m[2m │ gzip:   7.31 kB[22m
-[2m../dist/[22m[36mjs/common.ba43389e.js                 [39m[1m[2m 27.72 kB[22m[1m[22m[2m │ gzip:   9.95 kB[22m
-[2m../dist/[22m[36mjs/index.155fe33b.js                  [39m[1m[2m 31.33 kB[22m[1m[22m[2m │ gzip:   9.73 kB[22m
-[2m../dist/[22m[36mjs/vendors.f8aef224.js                [39m[1m[2m613.37 kB[22m[1m[22m[2m │ gzip: 191.76 kB[22m
-[32m✓ built in 1m 46s[39m
+[36mvite v4.5.14 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 2 modules transformed.
+rendering chunks...
+computing gzip size...
+[2m../dist/[22m[32mindex.html                [39m[1m[2m0.99 kB[22m[1m[22m[2m │ gzip: 0.59 kB[22m
+[2m../dist/[22m[32mico/favicon.333d34e2.ico  [39m[1m[2m2.15 kB[22m[1m[22m
+[36m[vite-plugin-static-copy][39m [33mNo items to copy.[39m
+[32m✓ built in 267ms[39m
+[copy-favicon] 4/4 files copied to dist/

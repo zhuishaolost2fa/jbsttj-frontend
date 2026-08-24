@@ -4,6 +4,18 @@
 - 所有可导航页面必须在 `src/app.config.ts` 的 `pages` 数组中注册；未注册时 `Taro.navigateTo` 只会改变浏览器 URL 而不渲染任何页面。
 - H5 新增/修改页面后必须重启 `npm run dev:h5`，dev server 不会可靠热更新 `app.config.ts` 的路由表。
 
+## 导航结构（tabBar：首页 · 剧本 · 我的）
+- 首页（pages/index）只做搜索：品牌 + SearchBar 联想（`/scripts/autocomplete`）+ 剧透提示；不再含导入入口。
+- 导入 DM 手册（ImportDmGuide + ScriptSubmitForm 上传→匹配→填表→提交流程）已迁入「我的」页（pages/profile），属贡献者行为；我的页含说明卡：仅支持 Word（.doc/.docx），PDF 需 OCR 成本高不支持（PDF→Word 用 Edge 打印拆分+夸克网盘转换），收益=剧本解析费 20% 抽成，余给导入者与知识库共建者。
+- 改 app.config.ts 的 tabBar 或 pages 后需重启 dev:h5（dev server 不热更新路由表）。
+
+
+## tabBar 图标约定
+- 图标为本地 PNG（81x81，<40KB），位于 `src/assets/tabbar/`，命名 `tab-{import|scripts|profile}[{-active}].png`（灰 #9aa0ae 未选中 / 蓝 #5b7cfa 选中）。
+- Taro 原生 tabBar 只接受本地图片，不支持 iconfont 字体；但构建期会自动把 `assets/tabbar/*.png` 打包到 `dist/static/images/` 并重写路径，无需手动处理。
+- 换图标：iconfont.cn 下载 81x81 PNG（或 SVG 转 PNG）覆盖同名文件即可，无需改代码；重新生成脚本 `scripts/gen-tabbar-icons.py`（PIL 绘制 + 4x 超采样，可改色/图形）。
+- 改 app.config.ts 的 tabBar 后需重启 dev:h5（与路由表同理）。
+
 ## 后端地址 / 环境变量（Vercel 部署）
 - 后端域名由 `src/constants/api.ts` 的 `API_ORIGIN = process.env.TARO_APP_API_ORIGIN || 默认值` 决定，默认 https://jbsttj-backend-production.up.railway.app。
 - **坑**：Taro 4.x Vite 模式下 `TARO_APP_*` 变量只从 `.env` **文件**注入（`@tarojs/helper` 的 `dotenvParse` 不读 shell env），所以 Vercel/CI 的 shell 环境变量默认不会进产物。

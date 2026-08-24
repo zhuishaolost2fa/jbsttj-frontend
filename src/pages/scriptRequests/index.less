@@ -1,0 +1,270 @@
+.rq-page {
+  min-height: 100vh;
+  background: #f7f8fc;
+  padding: 16px 16px 24px;
+  box-sizing: border-box;
+}
+
+/* ===== 页头 ===== */
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2330;
+}
+
+.page-count {
+  font-size: 12px;
+  color: #9aa0ae;
+}
+
+.page-tip {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #9aa0ae;
+}
+
+.page-tip-end {
+  padding: 20px 0 24px;
+  font-size: 12px;
+}
+
+.page-error {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: rgba(229, 77, 66, 0.08);
+  color: #e54d42;
+  font-size: 13px;
+}
+
+/* ===== 筛选条 ===== */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.filter-chip {
+  padding: 6px 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #eceef3;
+  transition: all 0.15s ease;
+
+  &.is-active {
+    background: rgba(91, 124, 250, 0.1);
+    border-color: rgba(91, 124, 250, 0.4);
+  }
+}
+
+.filter-chip-text {
+  font-size: 13px;
+  color: #6b7080;
+}
+
+.filter-chip.is-active .filter-chip-text {
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+/* ===== 空状态 ===== */
+.empty-block {
+  padding: 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-emoji {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-bottom: 6px;
+}
+
+.empty-desc {
+  font-size: 12px;
+  color: #9aa0ae;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.empty-btn {
+  padding: 9px 26px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+}
+
+.empty-btn-text {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ===== 列表 ===== */
+.rq-list {
+  max-height: calc(100% - 120px);
+}
+
+.rq-card {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+}
+
+.rq-card.is-clickable {
+  transition: transform 0.1s ease;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.card-cover {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.cover-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2330;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.card-badge.is-pending {
+  color: #5b7cfa;
+  background: rgba(91, 124, 250, 0.1);
+}
+
+.card-badge.is-done {
+  color: #12a150;
+  background: rgba(18, 161, 80, 0.1);
+}
+
+.card-badge.is-cancelled {
+  color: #9aa0ae;
+  background: rgba(154, 160, 174, 0.12);
+}
+
+.card-reason {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #6b7080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 5px;
+  gap: 4px 10px;
+}
+
+.meta-item {
+  font-size: 11px;
+  color: #9aa0ae;
+}
+
+.meta-item.is-link {
+  color: #5b7cfa;
+}
+
+/* ===== 取消按钮 ===== */
+.card-cancel {
+  flex-shrink: 0;
+  margin-left: 8px;
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: rgba(229, 77, 66, 0.08);
+  transition: opacity 0.15s ease;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.card-cancel-text {
+  font-size: 12px;
+  color: #e54d42;
+  font-weight: 500;
+}
+
+/* ===== 加载更多 ===== */
+.load-more-btn {
+  padding: 12px;
+  margin: 4px 0 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #eceef3;
+  transition: opacity 0.15s ease;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.load-more-text {
+  font-size: 14px;
+  color: #5b7cfa;
+  font-weight: 500;
+}

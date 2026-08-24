@@ -110,6 +110,91 @@
   color: #c8ccd6;
 }
 
+/* ===== 导入 DM 手册卡片 ===== */
+.import-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.import-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.import-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2330;
+}
+
+.import-card-sub {
+  font-size: 11px;
+  color: #9aa0ae;
+}
+
+/* 提示说明区 */
+.import-hint {
+  padding: 12px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: #f6f8ff;
+}
+
+.import-hint-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 0;
+}
+
+.import-hint-row + .import-hint-row {
+  border-top: 1px dashed #e3e8f5;
+}
+
+.import-hint-k {
+  flex-shrink: 0;
+  width: 96px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b7cfa;
+}
+
+.import-hint-v {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #5b6072;
+}
+
+/* 未登录时的占位入口 */
+.import-locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px dashed #d4d8e3;
+  background: #fbfcff;
+}
+
+.import-locked:active {
+  background: #f2f4fa;
+}
+
+.locked-icon {
+  font-size: 14px;
+  margin-right: 6px;
+}
+
+.locked-text {
+  font-size: 14px;
+  color: #7a7f8c;
+}
+
 /* ===== 退出 ===== */
 .logout-btn {
   padding: 14px;

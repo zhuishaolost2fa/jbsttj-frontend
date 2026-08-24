@@ -1,15 +1,24 @@
 /**
  * 个人中心。
  *
- * 账号相关的操作原先挤在首页顶部的一条窄条里，改成 tabBar 后归拢到这里，
- * 首页专心做「导入」这一件事。资料编辑与账号安全从这里进入。
+ * 账号相关的操作原先挤在首页顶部的一条窄条里，改成 tabBar 后归拢到这里。
+ * 导入 DM 手册（含上传 → 匹配剧本 → 填表提交的完整链路）已从首页迁入本页，
+ * 属于「贡献者行为」，与账号资料放在一起更顺。首页只保留搜索。
  */
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { goLogin, useAuth } from '../../store/auth'
 import Avatar from '../../components/Avatar'
+import ImportDmGuide from '../../components/ImportDmGuide'
+import ScriptSubmitForm, { deriveScriptName } from '../../components/ScriptSubmitForm'
+import {
+  searchScriptByName,
+  type ScriptItemCamel,
+} from '../../services/script'
+import type { UploadResult } from '../../utils/ossMultipartUpload'
+import { replayActiveTabIcon } from '../../utils/replayActiveTabIcon'
 import './index.less'
 
 const GENDER_LABEL: Record<string, string> = {
@@ -19,7 +28,16 @@ const GENDER_LABEL: Record<string, string> = {
 }
 
 function ProfilePage() {
+  useDidShow(replayActiveTabIcon);
   const { status, user, isAuthenticated, logout } = useAuth()
+
+  // 导入 DM 指南后「匹配剧本 → 填表 → 提交」流程的上下文
+  const [submitVisible, setSubmitVisible] = useState(false)
+  const [submitCtx, setSubmitCtx] = useState<{
+    file: UploadResult
+    candidates: ScriptItemCamel[]
+    derivedName: string
+  } | null>(null)
 
   const handleLogout = useCallback(() => {
     void Taro.showModal({
@@ -34,6 +52,50 @@ function ProfilePage() {
       }
     })
   }, [logout])
+
+  /**
+   * 导入成功后，用文件名推导剧本名，去剧本库模糊匹配候选，再弹表单提交。
+   * 推导不出有效剧本名时跳过匹配、直接进手动填写，避免 422。
+   * 匹配接口异常时降级为手动填写，不阻断已上传的结果。
+   */
+  const handleImportSuccess = useCallback(async (result: UploadResult) => {
+    const derived = deriveScriptName(result.fileName)
+    if (!derived) {
+      setSubmitCtx({ file: result, candidates: [], derivedName: '' })
+      setSubmitVisible(true)
+      return
+    }
+    try {
+      const res = await searchScriptByName(derived)
+      setSubmitCtx({
+        file: result,
+        candidates: res.items ?? [],
+        derivedName: derived,
+      })
+      setSubmitVisible(true)
+    } catch (err) {
+      console.error('[profile] 剧本名匹配失败，降级为手动填写:', err)
+      setSubmitCtx({
+        file: result,
+        candidates: [],
+        derivedName: derived,
+      })
+      setSubmitVisible(true)
+    }
+  }, [])
+
+  /**
+   * 剧本提交成功后跳到「我的剧本」。
+   * 解析要跑十几分钟，停在首页看不到后续反馈，送到列表页正好看着进度条走完。
+   */
+  const handleSubmitted = useCallback((created: ScriptItemCamel) => {
+    setSubmitVisible(false)
+    Taro.showToast({ title: '已提交，正在解析手册', icon: 'none', duration: 1800 })
+    setTimeout(() => {
+      void Taro.navigateTo({ url: '/pages/myScripts/index' })
+    }, 800)
+    return created
+  }, [])
 
   const displayName = user?.nickname || user?.email || '未登录'
   const genderText = user?.gender ? GENDER_LABEL[user.gender] : ''
@@ -112,13 +174,70 @@ function ProfilePage() {
         </View>
         <View
           className='menu-item'
-          onClick={() => Taro.switchTab({ url: '/pages/index/index' })}
+          onClick={() => Taro.navigateTo({ url: '/pages/scriptRequests/index' })}
         >
-          <Text className='menu-icon'>📥</Text>
-          <Text className='menu-label'>导入 DM 手册</Text>
+          <Text className='menu-icon'>🙋</Text>
+          <Text className='menu-label'>求解析</Text>
           <Text className='menu-arrow'>&#x203A;</Text>
         </View>
       </View>
+
+      {/* ===== 导入 DM 手册（从首页迁入） ===== */}
+      <View className='import-card'>
+        <View className='import-card-head'>
+          <Text className='import-card-title'>📥 导入 DM 手册</Text>
+          <Text className='import-card-sub'>贡献剧本，参与收益分成</Text>
+        </View>
+
+        {/* 仅支持 Word 的说明 */}
+        <View className='import-hint'>
+          <View className='import-hint-row'>
+            <Text className='import-hint-k'>支持格式</Text>
+            <Text className='import-hint-v'>
+              仅支持 Word 文档（.doc / .docx）导入
+            </Text>
+          </View>
+          <View className='import-hint-row'>
+            <Text className='import-hint-k'>为什么不能直接传 PDF</Text>
+            <Text className='import-hint-v'>
+              PDF 需 OCR 识别才能解析，成本太高暂不支持
+            </Text>
+          </View>
+          <View className='import-hint-row'>
+            <Text className='import-hint-k'>PDF 转 Word 方法</Text>
+            <Text className='import-hint-v'>
+              超大型 PDF 先用 Edge 浏览器打印模式拆分，再用夸克网盘转成 Word
+            </Text>
+          </View>
+          <View className='import-hint-row'>
+            <Text className='import-hint-k'>收益分配</Text>
+            <Text className='import-hint-v'>
+              剧本解析费用抽取 20%，其余收益分配给导入者与知识库共建者
+            </Text>
+          </View>
+        </View>
+
+        {isAuthenticated ? (
+          <ImportDmGuide onSuccess={handleImportSuccess} />
+        ) : (
+          <View className='import-locked' onClick={() => goLogin()}>
+            <Text className='locked-icon'>🔒</Text>
+            <Text className='locked-text'>登录后导入 DM 指南</Text>
+          </View>
+        )}
+      </View>
+
+      {/* 导入成功后的「匹配剧本 → 填表 → 提交」弹层 */}
+      {submitCtx && (
+        <ScriptSubmitForm
+          visible={submitVisible}
+          file={submitCtx.file}
+          candidates={submitCtx.candidates}
+          derivedName={submitCtx.derivedName}
+          onClose={() => setSubmitVisible(false)}
+          onSubmitted={handleSubmitted}
+        />
+      )}
 
       <View className='menu-group'>
         <View

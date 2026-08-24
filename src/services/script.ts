@@ -348,6 +348,8 @@ export interface ScriptListQuery {
   players?: number
   /** 按时长区间包含匹配：duration=300 命中 duration_min≤300 且 duration_max≥300 的剧本（分钟） */
   duration?: number
+  /** 只看已关联 DM 主持人手册（已完成解析）的剧本 */
+  hasGuide?: boolean
   sort?: ScriptSort
   limit?: number
   offset?: number
@@ -398,6 +400,7 @@ export async function fetchScriptList(
   if (query.releases?.length) params.release = query.releases
   if (query.players != null) params.players = query.players
   if (query.duration != null) params.duration = query.duration
+  if (query.hasGuide != null) params.has_guide = query.hasGuide
 
   const qs = buildListQS(params)
   const res = await get<{ items: Record<string, any>[]; pagination: Record<string, any> }>(

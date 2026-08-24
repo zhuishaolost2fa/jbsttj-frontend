@@ -1,4 +1,4 @@
-/* ===== 剧本库页面 ===== */
+/* ===== 剧本库页面（只展示已解析剧本） ===== */
 .library-page {
   min-height: 100vh;
   background: #f7f8fc;
@@ -6,159 +6,19 @@
   box-sizing: border-box;
 }
 
-/* ===== 搜索框（sticky，滚动时固定在顶部） ===== */
+/* ===== 搜索框 ===== */
 .lib-search {
+  padding: 12px 16px 12px;
+  background: #f7f8fc;
   position: sticky;
   top: 0;
-  z-index: 20;
-  background: #f7f8fc;
-  padding: 10px 16px 6px;
-}
-
-/* ===== 排序行 ===== */
-.sort-row {
-  display: flex;
-  white-space: nowrap;
-  padding: 0 16px;
-  margin-bottom: 4px;
-}
-
-.sort-chip {
-  display: inline-block;
-  padding: 5px 14px;
-  margin-right: 8px;
-  font-size: 13px;
-  color: #6b7080;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #eceef3;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-
-  &.is-active {
-    color: #ffffff;
-    background: #5b7cfa;
-    border-color: #5b7cfa;
-    font-weight: 600;
-  }
-}
-
-/* ===== 筛选维度区 ===== */
-.filter-section {
-  padding: 4px 0 8px;
-}
-
-.filter-row {
-  display: flex;
-  align-items: center;
-  padding: 3px 16px;
-}
-
-.filter-label {
-  font-size: 12px;
-  color: #9aa0ae;
-  width: 36px;
-  flex-shrink: 0;
-  font-weight: 500;
-}
-
-.filter-chips {
-  flex: 1;
-  display: flex;
-  white-space: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  /* 隐藏滚动条 */
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.f-chip {
-  display: inline-block;
-  padding: 4px 12px;
-  margin-right: 8px;
-  font-size: 12px;
-  color: #5a6072;
-  background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #e3e6ee;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-
-  &.is-active {
-    color: #5b7cfa;
-    background: rgba(91, 124, 250, 0.1);
-    border-color: #5b7cfa;
-    font-weight: 600;
-  }
-}
-
-/* ===== 已选筛选汇总条 ===== */
-.active-bar {
-  display: flex;
-  align-items: center;
-  padding: 6px 16px;
-  gap: 8px;
-}
-
-.active-chips {
-  flex: 1;
-  display: flex;
-  white-space: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.active-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px 3px 10px;
-  margin-right: 6px;
-  font-size: 12px;
-  color: #5b7cfa;
-  background: rgba(91, 124, 250, 0.1);
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
-.active-chip-text {
-  font-size: 12px;
-  color: #5b7cfa;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.active-chip-x {
-  font-size: 11px;
-  color: #9aa0ae;
-  padding-left: 2px;
-}
-
-.clear-all-btn {
-  padding: 4px 10px;
-  background: rgba(229, 77, 66, 0.08);
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
-.clear-all-text {
-  font-size: 12px;
-  color: #e54d42;
-  font-weight: 500;
+  --nutui-searchbar-background: #f7f8fc;
+  --nutui-searchbar-padding: 0;
 }
 
 /* ===== 结果计数 ===== */
 .result-info {
-  padding: 6px 16px 4px;
+  padding: 0 16px 4px;
 }
 
 .result-count {
@@ -214,19 +74,6 @@
   font-size: 12px;
   color: #9aa0ae;
   text-align: center;
-  margin-bottom: 18px;
-}
-
-.lib-empty-btn {
-  padding: 8px 22px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
-}
-
-.lib-empty-btn-text {
-  font-size: 14px;
-  color: #ffffff;
-  font-weight: 600;
 }
 
 /* ===== 剧本卡片列表 ===== */
@@ -288,17 +135,6 @@
   white-space: nowrap;
   flex: 1;
   min-width: 0;
-}
-
-/* 已导入徽章 */
-.lib-badge-imported {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 8px;
-  color: #12a150;
-  background: rgba(18, 161, 80, 0.1);
-  flex-shrink: 0;
-  font-weight: 600;
 }
 
 /* 元信息行 */
@@ -377,4 +213,350 @@
   font-size: 14px;
   color: #5b7cfa;
   font-weight: 500;
+}
+
+/* ===== 搜索无结果：请求解析 CTA ===== */
+.request-cta {
+  margin: 12px 16px 0;
+  padding: 28px 20px 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.request-cta-emoji {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.request-cta-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3d4252;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.request-cta-desc {
+  font-size: 12px;
+  color: #9aa0ae;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.request-btn {
+  padding: 11px 22px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  border-radius: 22px;
+  box-shadow: 0 4px 12px rgba(91, 124, 250, 0.28);
+  transition: opacity 0.15s ease, transform 0.1s ease;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+
+  &.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+.request-btn-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ===== 悬浮按钮：求解析榜单 ===== */
+.board-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  border-radius: 24px;
+  box-shadow: 0 6px 16px rgba(91, 124, 250, 0.35);
+  transition: opacity 0.15s ease, transform 0.1s ease;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.97);
+  }
+}
+
+.board-fab-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.board-fab-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ===== 求解析榜单弹层 ===== */
+.board-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.board-mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(15, 18, 28, 0.5);
+}
+
+.board-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 72vh;
+  background: #f7f8fc;
+  border-radius: 20px 20px 0 0;
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.board-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.board-head-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.board-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2330;
+}
+
+.board-subtitle {
+  font-size: 11px;
+  color: #9aa0ae;
+}
+
+.board-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eceef3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.board-close-text {
+  font-size: 13px;
+  color: #6b7080;
+  line-height: 1;
+}
+
+/* 弹层内容区：内部滚动 */
+.board-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.board-tip {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #9aa0ae;
+}
+
+/* 空 / 错状态 */
+.board-empty {
+  padding: 40px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.board-empty-emoji {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.board-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-bottom: 6px;
+}
+
+.board-empty-text {
+  font-size: 13px;
+  color: #9aa0ae;
+  margin-bottom: 14px;
+}
+
+.board-empty-desc {
+  font-size: 12px;
+  color: #9aa0ae;
+  text-align: center;
+}
+
+.board-retry {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  border-radius: 18px;
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+
+.board-retry-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* 榜单列表 */
+.board-list {
+  padding-bottom: 4px;
+}
+
+.board-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+
+  &.is-clickable {
+    &:active {
+      transform: scale(0.99);
+    }
+  }
+}
+
+/* 名次 */
+.board-rank {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: #eceef3;
+  color: #9aa0ae;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  flex-shrink: 0;
+
+  &.is-top1 {
+    background: #f5a623;
+    color: #ffffff;
+  }
+
+  &.is-top2 {
+    background: #aab2c5;
+    color: #ffffff;
+  }
+
+  &.is-top3 {
+    background: #d99355;
+    color: #ffffff;
+  }
+}
+
+.board-cover {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.board-cover-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.board-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.board-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2330;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-item-sub {
+  font-size: 10px;
+  color: #b6bac6;
+}
+
+/* 诉求人数 */
+.board-count {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: rgba(91, 124, 250, 0.1);
+  border-radius: 13px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+
+.board-count-num {
+  font-size: 15px;
+  font-weight: 700;
+  color: #5b7cfa;
+}
+
+.board-count-unit {
+  font-size: 10px;
+  color: #5b7cfa;
 }

@@ -2,21 +2,19 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { SearchBar } from '@nutui/nutui-react-taro'
-import ImportDmGuide from '../../components/ImportDmGuide'
-import ScriptSubmitForm, { deriveScriptName } from '../../components/ScriptSubmitForm'
 import {
-  searchScriptByName,
   autocompleteScripts,
-  type ScriptItemCamel,
   type ScriptAutocompleteItem,
 } from '../../services/script'
-import type { UploadResult } from '../../utils/ossMultipartUpload'
-import { goLogin, useAuth } from '../../store/auth'
 import './index.less'
 
+/**
+ * 首页 —— 只做搜索。
+ *
+ * 导入 DM 手册已迁入「我的」页面（属个人/贡献者行为），首页只保留搜索入口，
+ * 让用户快速找到玩过的剧本进入复盘问答。
+ */
 function Index() {
-  // 账号信息与退出登录已挪到「我的」tab，首页只关心「是否已登录」这一件事
-  const { isAuthenticated } = useAuth()
   const [searchValue, setSearchValue] = useState('')
   const [searchResults, setSearchResults] = useState<ScriptAutocompleteItem[]>([])
   const [showResults, setShowResults] = useState(false)
@@ -24,14 +22,6 @@ function Index() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** 联想请求序号：仅应用最新一次的结果，丢弃乱序的旧响应 */
   const reqSeq = useRef(0)
-
-  // 导入 DM 指南后「匹配剧本 → 填表 → 提交」流程的上下文
-  const [submitVisible, setSubmitVisible] = useState(false)
-  const [submitCtx, setSubmitCtx] = useState<{
-    file: UploadResult
-    candidates: ScriptItemCamel[]
-    derivedName: string
-  } | null>(null)
 
   /**
    * 真正发联想请求：调用后端 `/scripts/autocomplete`，只召回已上架剧本。
@@ -114,22 +104,6 @@ function Index() {
     })
   }
 
-  /**
-   * 剧本提交成功后跳到「我的剧本」。
-   *
-   * 解析要跑十几分钟，停在首页用户看不到任何后续反馈，很容易以为没生效。
-   * 送到列表页正好能看着进度条走完，也顺带告诉他「导入的本都在这儿」。
-   * 「我的剧本」已从 tab 收纳到「我的」页面入口下，走 navigateTo 而非 switchTab。
-   */
-  const handleSubmitted = useCallback((created: ScriptItemCamel) => {
-    setSubmitVisible(false)
-    Taro.showToast({ title: '已提交，正在解析手册', icon: 'none', duration: 1800 })
-    setTimeout(() => {
-      void Taro.navigateTo({ url: '/pages/myScripts/index' })
-    }, 800)
-    return created
-  }, [])
-
   return (
     <View className='home-page'>
       <View className='main-content'>
@@ -194,67 +168,11 @@ function Index() {
           )}
         </View>
 
-        {/* 导入 DM 指南：上传接口需要 Bearer token，未登录先引导登录 */}
-        <View className='import-section'>
-          {isAuthenticated ? (
-            <ImportDmGuide
-              onSuccess={async (result) => {
-                // 导入成功后，用文件名推导剧本名，去剧本库模糊匹配
-                const derived = deriveScriptName(result.fileName)
-                // 文件名推导不出有效剧本名（如「DM指南.pdf」会被剥干净）时，
-                // 后端 /byname 会因 name 为空 422。这里直接跳过匹配、进入手动填写，
-                // 避免弹出误导性的「匹配失败」提示
-                if (!derived) {
-                  setSubmitCtx({ file: result, candidates: [], derivedName: '' })
-                  setSubmitVisible(true)
-                  return
-                }
-                try {
-                  const res = await searchScriptByName(derived)
-                  setSubmitCtx({
-                    file: result,
-                    candidates: res.items ?? [],
-                    derivedName: derived,
-                  })
-                  setSubmitVisible(true)
-                } catch (err) {
-                  // 匹配接口异常不应阻断「已上传」的结果：
-                  // 降级为「手动填写」模式，让用户仍能把这份 DM 指南提交到后端
-                  console.error('[index] 剧本名匹配失败，降级为手动填写:', err)
-                  setSubmitCtx({
-                    file: result,
-                    candidates: [],
-                    derivedName: derived,
-                  })
-                  setSubmitVisible(true)
-                }
-              }}
-            />
-          ) : (
-            <View className='import-locked' onClick={() => goLogin()}>
-              <Text className='locked-icon'>🔒</Text>
-              <Text className='locked-text'>登录后导入 DM 指南</Text>
-            </View>
-          )}
-        </View>
-
         {/* 提示 - 最小化 */}
         <Text className='warning-hint'>
           ⚠️ 复盘含剧透，未玩过的本请勿查看
         </Text>
       </View>
-
-      {/* 导入 DM 指南后的「匹配剧本 → 填表 → 提交」弹层 */}
-      {submitCtx && (
-        <ScriptSubmitForm
-          visible={submitVisible}
-          file={submitCtx.file}
-          candidates={submitCtx.candidates}
-          derivedName={submitCtx.derivedName}
-          onClose={() => setSubmitVisible(false)}
-          onSubmitted={handleSubmitted}
-        />
-      )}
     </View>
   )
 }

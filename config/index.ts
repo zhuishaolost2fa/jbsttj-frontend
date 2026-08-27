@@ -1,5 +1,6 @@
 import { defineConfig, type UserConfigExport } from '@tarojs/cli'
 import type { Plugin } from 'vite'
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import devConfig from './dev'
 import prodConfig from './prod'
@@ -27,8 +28,46 @@ function armsPlatformAlias(): Plugin {
   }
 }
 
+/**
+ * 读取项目根目录 .env 文件（简单 KEY=VALUE 解析，忽略注释与空行），
+ * 供构建期统一解析 TARO_APP_* 变量，保证任意环境（尤其无 .env 的本地）
+ * 都能注入常量、产物不残留 process 引用。
+ */
+function loadEnvFile(): Record<string, string> {
+  const envPath = path.resolve(__dirname, '../.env')
+  const env: Record<string, string> = {}
+  if (!fs.existsSync(envPath)) return env
+  const content = fs.readFileSync(envPath, 'utf-8')
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    const key = trimmed.slice(0, eq).trim()
+    const value = trimmed.slice(eq + 1).trim()
+    if (key) env[key] = value
+  }
+  return env
+}
+
 // https://taro-docs.jd.com/docs/next/config#defineconfig-辅助函数
 export default defineConfig<'vite'>(async (merge, { command, mode }) => {
+  // ── 构建期环境变量解析：shell(CI) > .env 文件 > 代码默认值 ──────────────
+  // Taro 4.x Vite 模式只会把 .env 文件里的 TARO_APP_* 变量注入产物
+  // （@tarojs/helper 的 dotenvParse 不读 shell 环境变量），且 .env 不存在时
+  // 这些常量完全没有定义，导致源码里的 `process.env.TARO_APP_*` 原样残留。
+  // 微信小程序运行时没有 process 全局对象，残留引用会直接抛
+  // ReferenceError: process is not defined。因此这里手动解析 .env 并
+  // 在 defineConstants 中**无条件**注入（defineConstants 优先级高于
+  // Taro 自带的 envConstants，见 @tarojs/vite-runner/dist/mini/config.js）。
+  const envFile = loadEnvFile()
+  const TARO_APP_API_ORIGIN =
+    process.env.TARO_APP_API_ORIGIN ||
+    envFile.TARO_APP_API_ORIGIN ||
+    'https://jbsttj-backend-production.up.railway.app' // 与 src/constants/api.ts 默认值保持一致
+  const TARO_APP_ARMS_ENV =
+    process.env.TARO_APP_ARMS_ENV || envFile.TARO_APP_ARMS_ENV || 'prod' // 与 src/monitor/arms.ts 默认值保持一致
+
   const baseConfig: UserConfigExport<'vite'> = {
     projectName: 'jbsttj-frontend',
     date: '2026-7-28',
@@ -43,18 +82,13 @@ export default defineConfig<'vite'>(async (merge, { command, mode }) => {
     outputRoot: 'dist',
     plugins: ['@tarojs/plugin-html'],
     defineConstants: {
-      // 后端域名优先级：构建期 shell 环境变量（Vercel/CI 注入） > .env 文件 > 代码默认值。
-      // Taro 默认只把 .env 文件里的 TARO_APP_* 变量打进产物，读不到 shell 环境变量，
-      // 因此这里显式取 process.env.TARO_APP_API_ORIGIN 用 Vite define 注入；
-      // 仅在 shell 中存在该变量时才定义，避免覆盖 .env 文件的取值。
-      ...(process.env.TARO_APP_API_ORIGIN
-        ? { 'process.env.TARO_APP_API_ORIGIN': JSON.stringify(process.env.TARO_APP_API_ORIGIN) }
-        : {}),
-      // ARMS 上报环境标识（'prod' | 'gray' | 'pre' | 'daily' | 'local'），
-      // 与 API_ORIGIN 同机制：shell(CI) > .env > 代码默认值 'prod'。
-      ...(process.env.TARO_APP_ARMS_ENV
-        ? { 'process.env.TARO_APP_ARMS_ENV': JSON.stringify(process.env.TARO_APP_ARMS_ENV) }
-        : {})
+      // 无条件注入（而非仅在 shell 有值时注入）：
+      // 1) 三级优先级（shell > .env > 默认值）只在此处解析一次，不冲突；
+      // 2) 关键：微信小程序运行时没有 process 全局对象，若 TARO_APP_* 常量
+      //    未被定义，源码中的 process.env 引用会原样打进产物并在启动时抛
+      //    ReferenceError: process is not defined。
+      'process.env.TARO_APP_API_ORIGIN': JSON.stringify(TARO_APP_API_ORIGIN),
+      'process.env.TARO_APP_ARMS_ENV': JSON.stringify(TARO_APP_ARMS_ENV),
     },
     copy: {
       // favicon 静态资源拷到 dist 根目录：走 vite-plugin-static-copy，

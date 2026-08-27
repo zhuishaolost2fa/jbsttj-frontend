@@ -217,14 +217,12 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
   )
 
   const handleImport = useCallback(async () => {
-    // 小程序端降级：chooseMessageFile 拿不到几百 MB 的文件，request 单包也只有 10MB
+    // 小程序端：无法处理数百 MB 分片直传（chooseMessageFile 拿不到大文件、request 单包仅 10MB），
+    // 跳转到 web-view 内嵌的 H5 页面（https://jbs-ttj.store）完成导入
     if (process.env.TARO_ENV !== 'h5') {
-      Taro.showModal({
-        title: '请在浏览器中导入',
-        content:
-          'DM 指南通常有数百 MB，小程序环境无法处理这么大的文件。请在手机浏览器或电脑端打开本页面后再导入。',
-        showCancel: false,
-        confirmText: '我知道了',
+      const h5Url = 'https://jbs-ttj.store'
+      Taro.navigateTo({
+        url: `/pages/webview/index?url=${encodeURIComponent(h5Url)}`,
       })
       return
     }

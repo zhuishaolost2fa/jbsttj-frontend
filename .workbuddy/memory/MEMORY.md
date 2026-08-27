@@ -10,9 +10,9 @@
 - 改 app.config.ts 的 tabBar 或 pages 后需重启 dev:h5（dev server 不热更新路由表）。
 
 ## 小程序端导入 DM 指南 = 引导去 H5（web-view 内嵌）
-- 小程序端无法处理数百 MB 分片直传（chooseMessageFile 拿不到大文件、request 单包 10MB），`ImportDmGuide.handleImport` 非 h5 分支改为 `Taro.navigateTo('/pages/webview/index?url=...')` 打开 H5 导入页 `https://jbs-ttj.store`（H5 落地页）。
-- `src/pages/webview/`：顶部提示条 + 「复制链接」兜底 + `<WebView src>`，`onError` 提示检查业务域名配置；支持 `?url=` 参数（默认 jbs-ttj.store）。
-- ⚠️ 微信 web-view 只能加载**业务域名白名单**内站点：需在小程序后台「开发-开发管理-开发设置-业务域名」添加 `https://jbs-ttj.store`（需企业主体 + 已备案域名），否则白屏（靠复制链接兜底）。
+- 小程序端无法处理数百 MB 分片直传（chooseMessageFile 拿不到大文件、request 单包 10MB），`ImportDmGuide.handleImport` 非 h5 分支改为 `Taro.navigateTo('/pages/webview/index?url=...')` 打开 H5 导入页 `https://www.jbs-ttj.store`（H5 落地页）。
+- `src/pages/webview/`：顶部提示条 + 「复制链接」兜底 + `<WebView src>`，`onError` 提示检查业务域名配置；支持 `?url=` 参数（默认 www.jbs-ttj.store）。
+- ⚠️ **必须用 www 域名**：`https://jbs-ttj.store` 会 308 重定向到 `www.jbs-ttj.store`，而微信 web-view 对跨域名重定向的**目标域名同样要求白名单**，否则可能白屏。直接加载 www 只需在小程序后台「开发-开发管理-开发设置-业务域名」配置一个 `https://www.jbs-ttj.store`（需企业主体 + 已备案域名）；未配置时白屏，靠「复制链接」兜底引导浏览器打开。
 
 
 ## tabBar 图标约定

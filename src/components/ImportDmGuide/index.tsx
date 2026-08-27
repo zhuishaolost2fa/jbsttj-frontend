@@ -218,9 +218,10 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
 
   const handleImport = useCallback(async () => {
     // 小程序端：无法处理数百 MB 分片直传（chooseMessageFile 拿不到大文件、request 单包仅 10MB），
-    // 跳转到 web-view 内嵌的 H5 页面（https://jbs-ttj.store）完成导入
+    // 跳转到 web-view 内嵌的 H5 页面（https://www.jbs-ttj.store）完成导入。
+    // 注意用 www 域名：jbs-ttj.store 会 308 重定向到 www，web-view 跨域重定向目标也需白名单
     if (process.env.TARO_ENV !== 'h5') {
-      const h5Url = 'https://jbs-ttj.store'
+      const h5Url = 'https://www.jbs-ttj.store'
       Taro.navigateTo({
         url: `/pages/webview/index?url=${encodeURIComponent(h5Url)}`,
       })

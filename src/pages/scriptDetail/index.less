@@ -1,9 +1,47 @@
 .detail-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #f7f8fc;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+/* ===== 内容 tab（问答 / 故事还原） ===== */
+.content-tabs {
+  flex-shrink: 0;
+  display: flex;
+  background: #ffffff;
+  border-bottom: 1px solid #eef0f5;
+}
+
+.content-tab {
+  flex: 1;
+  padding: 10px 0 9px;
+  text-align: center;
+  position: relative;
+}
+
+.content-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
+}
+
+.content-tab-text {
+  font-size: 14px;
+  color: #9aa0ae;
+}
+
+.content-tab.is-active .content-tab-text {
+  color: #1f2330;
+  font-weight: 700;
 }
 
 .page-tip {
@@ -211,11 +249,12 @@
 }
 
 /* ===== 对话区 ===== */
+/* 页面整体是 100vh 的弹性列，聊天区 flex:1 内部滚动（tab 栏/输入栏随内容伸缩） */
 .chat-area {
   flex: 1;
+  min-height: 0;
   padding: 12px 16px 0;
   box-sizing: border-box;
-  max-height: calc(100vh - 240px);
 }
 
 .chat-intro {
@@ -567,6 +606,7 @@
   min-height: 0;
   padding: 2px 16px 24px;
   box-sizing: border-box;
+  overflow-y: scroll;
 }
 
 .cat-tip {

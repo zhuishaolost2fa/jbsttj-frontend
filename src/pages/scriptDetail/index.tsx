@@ -47,6 +47,7 @@ import { usePolling } from "../../hooks/usePolling";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import Avatar from "../../components/Avatar";
 import QuestionPanel from "../../components/QuestionPanel";
+import StoryPanel from "../../components/StoryPanel";
 import "./index.less";
 
 /** 聊天气泡的答案来路：手册原文 / AI 生成 / 无结果 / 社区真人解答（引导问题直出） */
@@ -153,12 +154,16 @@ function ScriptDetailPage() {
   const metaTitle = script?.title || presetTitle || "剧本详情";
   usePageMeta(
     `${metaTitle} · 剧本杀复盘助手`,
-    `《${metaTitle}》DM 主持人手册智能问答：优先命中手册原文，未命中再由大模型作答，支持查看问答目录。`
+    `《${metaTitle}》DM 手册智能问答与故事还原：优先命中手册原文，未命中再由大模型作答；支持浏览时间线、真相与角色脉络的共读还原页。`
   );
 
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  /* 内容 tab：问答（聊天）/ 故事还原（共读）。故事还原是公开接口，
+   * 不依赖手册索引就绪，任何时候都可以切过去浏览。 */
+  const [activeTab, setActiveTab] = useState<"qa" | "story">("qa");
 
   /* 首渲染即从 localStorage 恢复上次会话（scriptCode 在首渲染已可从路由参数拿到），
    * 用惰性初始化而不是 effect 恢复，避免「先写空数组覆盖存档、再读档」的时序坑。 */
@@ -627,8 +632,24 @@ function ScriptDetailPage() {
         </View>
       </View>
 
-      {/* ===== 未就绪：显示进度 / 失败重试 ===== */}
-      {!isReady ? (
+      {/* ===== 内容 tab：问答 / 故事还原 ===== */}
+      <View className="content-tabs">
+        <View
+          className={`content-tab ${activeTab === "qa" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("qa")}
+        >
+          <Text className="content-tab-text">💬 问答</Text>
+        </View>
+        <View
+          className={`content-tab ${activeTab === "story" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("story")}
+        >
+          <Text className="content-tab-text">📖 故事还原</Text>
+        </View>
+      </View>
+
+      {/* ===== 未就绪：显示进度 / 失败重试（仅问答 tab） ===== */}
+      {activeTab === "qa" && !isReady ? (
         <View className="status-panel">
           {overall === "failed" ? (
             <>
@@ -671,7 +692,7 @@ function ScriptDetailPage() {
             </>
           )}
         </View>
-      ) : (
+      ) : activeTab === "qa" ? (
         <View className="ready-bar">
           <Text className="ready-text">
             索引就绪 · {dmGuide?.job?.embeddedQa ?? 0} 条问答
@@ -693,15 +714,16 @@ function ScriptDetailPage() {
             </View>
           </View>
         </View>
-      )}
+      ) : null}
 
-      {/* ===== 问答区 ===== */}
-      <ScrollView
-        className="chat-area"
-        scrollY
-        scrollIntoView={scrollTarget}
-        scrollWithAnimation
-      >
+      {/* ===== 问答区（仅问答 tab；故事还原 tab 渲染 StoryPanel） ===== */}
+      {activeTab === "qa" ? (
+        <ScrollView
+          className="chat-area"
+          scrollY
+          scrollIntoView={scrollTarget}
+          scrollWithAnimation
+        >
         {!messages.length ? (
           /* 冷启动引导（引导问题 + 导入者致谢）：仅在还没有任何消息时展示，
            * 用户提出第一个问题（或点击引导问题）后随本区块一并清除。 */
@@ -858,7 +880,15 @@ function ScriptDetailPage() {
         ) : null}
 
         <View className="chat-bottom-space" />
-      </ScrollView>
+        </ScrollView>
+      ) : (
+        <StoryPanel
+          scriptCode={scriptCode}
+          scriptTitle={script?.title || presetTitle}
+          active={activeTab === "story"}
+          isAuthenticated={isAuthenticated}
+        />
+      )}
 
       {/* ===== 问答目录抽屉（/qa-titles 概览，独立于聊天框） ===== */}
       {/* 打开过一次后保持挂载：滚动位置、展开状态、上次提问标记都原样保留 */}
@@ -919,27 +949,29 @@ function ScriptDetailPage() {
         onAskQuestion={submitQuestion}
       />
 
-      {/* ===== 输入栏 ===== */}
-      <View className="input-bar">
-        <Input
-          className="chat-input"
-          value={inputValue}
-          disabled={!isReady || asking}
-          placeholder={isReady ? "问点什么…" : "手册就绪后可提问"}
-          confirmType="send"
-          adjustPosition
-          onInput={(e) => setInputValue(e.detail.value)}
-          onConfirm={(e) => submitQuestion(e.detail.value)}
-        />
-        <View
-          className={`send-btn ${
-            !isReady || asking || !inputValue.trim() ? "is-disabled" : ""
-          }`}
-          onClick={() => submitQuestion(inputValue)}
-        >
-          <Text className="send-text">{asking ? "…" : "发送"}</Text>
+      {/* ===== 输入栏（仅问答 tab；故事还原 tab 由阅读页自身承载操作） ===== */}
+      {activeTab === "qa" ? (
+        <View className="input-bar">
+          <Input
+            className="chat-input"
+            value={inputValue}
+            disabled={!isReady || asking}
+            placeholder={isReady ? "问点什么…" : "手册就绪后可提问"}
+            confirmType="send"
+            adjustPosition
+            onInput={(e) => setInputValue(e.detail.value)}
+            onConfirm={(e) => submitQuestion(e.detail.value)}
+          />
+          <View
+            className={`send-btn ${
+              !isReady || asking || !inputValue.trim() ? "is-disabled" : ""
+            }`}
+            onClick={() => submitQuestion(inputValue)}
+          >
+            <Text className="send-text">{asking ? "…" : "发送"}</Text>
+          </View>
         </View>
-      </View>
+      ) : null}
     </View>
   );
 }

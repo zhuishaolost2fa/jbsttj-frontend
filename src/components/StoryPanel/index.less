@@ -1,0 +1,575 @@
+/* ===== 面板骨架（占满详情页 tab 以下的剩余高度） ===== */
+.story-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f7f8fc;
+}
+
+/* ===== 类型筛选 chips ===== */
+.story-chips {
+  flex-shrink: 0;
+  display: flex;
+  white-space: nowrap;
+  padding: 10px 16px 6px;
+  box-sizing: border-box;
+}
+
+.story-chip {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(154, 160, 174, 0.25);
+  margin-right: 8px;
+}
+
+.story-chip.is-active {
+  background: rgba(91, 124, 250, 0.12);
+  border-color: rgba(91, 124, 250, 0.45);
+}
+
+.story-chip-text {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.story-chip.is-active .story-chip-text {
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+/* ===== 列表 ===== */
+.story-list {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 16px 20px;
+  box-sizing: border-box;
+}
+
+.story-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.story-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 13px 15px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.04);
+}
+
+.story-card-head {
+  display: flex;
+  align-items: center;
+}
+
+.story-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2330;
+  line-height: 1.45;
+}
+
+.story-card-summary {
+  display: block;
+  margin-top: 7px;
+  font-size: 12px;
+  color: #9aa0ae;
+  line-height: 1.6;
+  /* 摘要最多两行，超出省略 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.story-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 9px;
+}
+
+.story-card-meta-item {
+  font-size: 10px;
+  color: #b6bac6;
+  margin-right: 10px;
+}
+
+/* 类型标签：各类型一个色系 */
+.story-type-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-right: 8px;
+}
+
+.story-type-tag.is-timeline {
+  color: #5b7cfa;
+  background: rgba(91, 124, 250, 0.1);
+}
+
+.story-type-tag.is-truth {
+  color: #e54d42;
+  background: rgba(229, 77, 66, 0.1);
+}
+
+.story-type-tag.is-role {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.story-type-tag.is-clue {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.1);
+}
+
+.story-type-tag.is-ending {
+  color: #12a150;
+  background: rgba(18, 161, 80, 0.1);
+}
+
+.story-type-tag.is-other {
+  color: #9aa0ae;
+  background: rgba(154, 160, 174, 0.12);
+}
+
+/* 列表状态 */
+.story-tip {
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.story-tip.is-error {
+  padding: 48px 20px;
+}
+
+.story-tip-emoji {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.story-tip-text {
+  font-size: 13px;
+  color: #9aa0ae;
+}
+
+.story-tip-desc {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #b6bac6;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.story-retry {
+  margin-top: 14px;
+  padding: 7px 20px;
+  border-radius: 16px;
+  background: rgba(91, 124, 250, 0.1);
+}
+
+.story-retry-text {
+  font-size: 13px;
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+.story-load-more {
+  padding: 12px 0;
+  text-align: center;
+}
+
+.story-load-more-text {
+  font-size: 12px;
+  color: #5b7cfa;
+}
+
+.story-list-end {
+  padding: 14px 0;
+  text-align: center;
+}
+
+.story-list-end-text {
+  font-size: 11px;
+  color: #b6bac6;
+}
+
+/* ===== 阅读页（全屏 overlay） ===== */
+.story-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: #f7f8fc;
+  display: flex;
+  flex-direction: column;
+}
+
+.story-detail-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #eef0f5;
+}
+
+.story-back {
+  flex-shrink: 0;
+  padding: 4px 12px 4px 0;
+}
+
+.story-back-text {
+  font-size: 15px;
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+.story-detail-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2330;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.story-detail-body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 0;
+  box-sizing: border-box;
+}
+
+/* 出处信息 */
+.story-source {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.story-source-text {
+  font-size: 10px;
+  color: #b6bac6;
+  margin-right: 10px;
+  margin-bottom: 4px;
+}
+
+.story-sec-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-bottom: 10px;
+}
+
+/* 结构化时间线事件 */
+.story-events {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 13px 15px;
+  margin-bottom: 12px;
+}
+
+.story-event {
+  display: flex;
+  align-items: baseline;
+  padding: 7px 0;
+}
+
+.story-event-when {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b7cfa;
+  margin-right: 12px;
+  min-width: 96px;
+}
+
+.story-event-what {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #6b7080;
+  line-height: 1.6;
+}
+
+/* 正文：H5 允许选中划线 */
+.story-content {
+  display: block;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #2b2f3d;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.story-detail-bottom-space {
+  height: 24px;
+}
+
+/* ===== 共读时间线（划线列表） ===== */
+.hl-section {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hl-item {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 15px;
+  margin-bottom: 10px;
+}
+
+.hl-head {
+  display: flex;
+  align-items: center;
+}
+
+.hl-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3d4252;
+  margin-left: 8px;
+}
+
+.hl-private-tag {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: #b6bac6;
+  background: rgba(154, 160, 174, 0.14);
+  border-radius: 7px;
+  padding: 1px 6px;
+  margin-left: 8px;
+}
+
+.hl-time {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 10px;
+  color: #b6bac6;
+}
+
+.hl-quote {
+  display: block;
+  margin-top: 9px;
+  padding: 2px 0 2px 10px;
+  border-left: 3px solid rgba(91, 124, 250, 0.35);
+  font-size: 12px;
+  color: #6b7080;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hl-comment {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #2b2f3d;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hl-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f1f5;
+}
+
+.hl-action {
+  font-size: 11px;
+  color: #5b7cfa;
+  margin-left: 16px;
+}
+
+.hl-action.is-danger {
+  color: #e54d42;
+}
+
+.hl-empty {
+  display: block;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 26px 15px;
+  font-size: 12px;
+  color: #b6bac6;
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* ===== 底部划线操作栏（仅 H5） ===== */
+.story-action-bar {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  padding-bottom: calc(10px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-top: 1px solid #eef0f5;
+}
+
+.story-action-hint {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: #b6bac6;
+  padding: 8px 0;
+}
+
+.story-mark-btn {
+  border-radius: 20px;
+  padding: 11px 0;
+  text-align: center;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+}
+
+.story-mark-btn-text {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ===== 划线新建/编辑弹窗 ===== */
+.hl-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 18, 32, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 28px;
+}
+
+.hl-dialog {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 16px 14px;
+  box-sizing: border-box;
+}
+
+.hl-dialog-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2330;
+  margin-bottom: 10px;
+}
+
+.hl-dialog-quote {
+  display: block;
+  font-size: 12px;
+  color: #6b7080;
+  line-height: 1.6;
+  padding: 8px 10px;
+  background: rgba(91, 124, 250, 0.06);
+  border-left: 3px solid rgba(91, 124, 250, 0.35);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hl-dialog-textarea {
+  width: 100%;
+  min-height: 72px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #f2f3f7;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #2b2f3d;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.hl-vis-row {
+  display: flex;
+  margin-top: 12px;
+}
+
+.hl-vis-opt {
+  flex: 1;
+  padding: 8px 0;
+  text-align: center;
+  border-radius: 10px;
+  background: #f2f3f7;
+  margin-right: 8px;
+}
+
+.hl-vis-opt:last-child {
+  margin-right: 0;
+}
+
+.hl-vis-opt.is-active {
+  background: rgba(91, 124, 250, 0.12);
+}
+
+.hl-vis-text {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.hl-vis-opt.is-active .hl-vis-text {
+  color: #5b7cfa;
+  font-weight: 600;
+}
+
+.hl-dialog-actions {
+  display: flex;
+  margin-top: 16px;
+}
+
+.hl-dialog-cancel {
+  flex: 1;
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 20px;
+  border: 1px solid rgba(154, 160, 174, 0.35);
+  margin-right: 10px;
+}
+
+.hl-dialog-cancel-text {
+  font-size: 14px;
+  color: #9aa0ae;
+}
+
+.hl-dialog-submit {
+  flex: 1;
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+}
+
+.hl-dialog-submit.is-disabled {
+  background: #d6d9e2;
+}
+
+.hl-dialog-submit-text {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+}

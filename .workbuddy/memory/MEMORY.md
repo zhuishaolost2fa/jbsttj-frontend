@@ -1,5 +1,11 @@
 # 项目长期笔记（jbsttj-frontend）
 
+## 剧本详情页 tab 结构与故事还原（2026-08-27）
+- 详情页 = 头部 + `content-tabs`（💬 问答 / 📖 故事还原）+ 内容区；问答链路（聊天/输入栏/ready-bar）全部 `activeTab==='qa'` 守卫，布局为 `height:100vh` 弹性列 + 内容区 `flex:1;min-height:0` 内部滚动。
+- 故事还原走扁平接口 `/dm-guide/stories`（公开，camelCase）：`StoryPanel` 组件承载类型筛选 chips、卡片流、全屏阅读 overlay；阅读页正文容器 id=`story-content-dom`。
+- H5 划线评论：`document.selectionchange` 持续捕获选区入 state（点按钮时选区即使被收起也不丢数据）；offset 用 `Array.from` 按码点统计；prefix/suffix 各 ≤32 字符指纹。小程序端无该能力，只读。
+- 共读时间线 = `GET /stories/{id}`（公开划线）+ `GET /highlights?mine=true&storyId=`（我的私有）按 id 去重合并、createdAt 倒序；自己的划线（`useAuth().user.id === h.userId`）可 PATCH 编辑 / DELETE 软删。
+
 ## Taro 路由约定
 - 所有可导航页面必须在 `src/app.config.ts` 的 `pages` 数组中注册；未注册时 `Taro.navigateTo` 只会改变浏览器 URL 而不渲染任何页面。
 - H5 新增/修改页面后必须重启 `npm run dev:h5`，dev server 不会可靠热更新 `app.config.ts` 的路由表。

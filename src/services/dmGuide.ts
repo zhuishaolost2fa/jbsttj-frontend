@@ -608,6 +608,216 @@ export function fetchGuideQuestions(
 }
 
 /* -------------------------------------------------------------------------- */
+/*                        故事还原（LLM 采集的剧本脉络）                          */
+/* -------------------------------------------------------------------------- */
+
+/** 一条故事还原条目（对应后端 StoryItem，字段已转 camelCase） */
+export interface StoryItem {
+  id: string
+  documentId: string
+  scriptCode: string
+  chunkId?: string | null
+  /** 条目序号（文档内行文顺序） */
+  storyIndex: number
+  /** timeline / truth / role / clue / ending / other */
+  storyType: string
+  title: string
+  /** 还原正文（LLM 从手册原文整理） */
+  content: string
+  /** 一句话摘要 */
+  summary?: string | null
+  /** 结构化补充：时间线事件（{events:[{when,what}]}）、人物关系对等 */
+  meta: Record<string, any>
+  sectionPath: string[]
+  pageStart?: number | null
+  pageEnd?: number | null
+  charCount: number
+  createdAt?: string | null
+  /** 公开划线数（共读时间线计数，列表页展示用） */
+  publicHighlights: number
+  /** 全部活跃划线数（含私有，作者视角） */
+  highlightCount: number
+}
+
+/** 故事条目详情（对应后端 StoryDetail）：条目本体 + 公开划线（共读时间线） */
+export interface StoryDetail extends StoryItem {
+  highlights: HighlightRecord[]
+}
+
+/** 剧本维度的故事还原分页列表（对应后端 StoryListResult） */
+export interface StoryListResult {
+  scriptCode: string
+  scriptTitle?: string | null
+  total: number
+  items: StoryItem[]
+}
+
+/** 故事类型的中文文案 */
+export const STORY_TYPE_TEXT: Record<string, string> = {
+  timeline: '时间线',
+  truth: '真相还原',
+  role: '角色背景',
+  clue: '线索关联',
+  ending: '结局收束',
+  other: '其他',
+}
+
+/** 故事类型 → 标签色系类名（详见 StoryPanel 样式） */
+export const STORY_TYPE_TONE: Record<string, string> = {
+  timeline: 'is-timeline',
+  truth: 'is-truth',
+  role: 'is-role',
+  clue: 'is-clue',
+  ending: 'is-ending',
+  other: 'is-other',
+}
+
+export type StoryTypeFilter =
+  | 'timeline' | 'truth' | 'role' | 'clue' | 'ending' | 'other' | undefined
+
+/**
+ * 拉取故事还原列表（公开接口，未登录可读）。
+ *
+ * 走扁平接口 `GET /dm-guide/stories`：`code` 优先，或传 `title` 自动派生。
+ * 条目按 `storyIndex`（手册行文顺序）排列，`storyType` 可过滤。
+ */
+export function fetchStories(
+  code: string,
+  options: {
+    title?: string
+    storyType?: StoryTypeFilter
+    limit?: number
+    offset?: number
+  } = {}
+): Promise<StoryListResult> {
+  const params: Record<string, any> = { code }
+  if (options.title) params.title = options.title
+  if (options.storyType) params.storyType = options.storyType
+  if (options.limit != null) params.limit = options.limit
+  if (options.offset != null) params.offset = options.offset
+  return get<StoryListResult>('/dm-guide/stories', params)
+}
+
+/** 拉取单条故事还原详情（含公开划线，共读时间线）。公开接口。 */
+export function fetchStoryDetail(storyId: string, limit = 50): Promise<StoryDetail> {
+  return get<StoryDetail>(`/dm-guide/stories/${encodeURIComponent(storyId)}`, { limit })
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       划线评论（Web Annotation 式文本锚点）                     */
+/* -------------------------------------------------------------------------- */
+
+/** 一条划线评论（对应后端 HighlightRecord，字段已转 camelCase） */
+export interface HighlightRecord {
+  id: string
+  scriptId: string
+  scriptCode: string
+  /** 划线诞生时的文档版本 */
+  documentId: string
+  /** 当前挂接的故事条目；orphaned 时为空 */
+  storyId?: string | null
+  storyTitle?: string | null
+  storyType?: string | null
+  userId: string
+  /** 划线原文 */
+  quote: string
+  startOffset: number
+  endOffset: number
+  /** 划线前文（≤64 字符指纹，重锚用） */
+  prefix: string
+  /** 划线后文（≤64 字符指纹，重锚用） */
+  suffix: string
+  /** 评论内容，可为空（纯划线） */
+  comment?: string | null
+  /** private 仅自己可见 / public 进入共读时间线 */
+  visibility: string
+  /** active 正常 / orphaned 待重锚 */
+  status: string
+  likeCount: number
+  createdAt?: string | null
+  updatedAt?: string | null
+  userNickname?: string | null
+  userAvatarUrl?: string | null
+  userAvatarColor?: number | null
+}
+
+/** 划线评论分页列表（对应后端 HighlightListResult） */
+export interface HighlightListResult {
+  total: number
+  items: HighlightRecord[]
+}
+
+/** 提交划线的请求体（对应后端 CreateHighlightRequest，驼峰字段） */
+export interface CreateHighlightPayload {
+  storyId: string
+  quote: string
+  startOffset: number
+  endOffset: number
+  prefix: string
+  suffix: string
+  comment?: string
+  visibility?: 'private' | 'public'
+}
+
+/**
+ * 拉取划线评论列表。
+ *
+ * 默认共读时间线视角：`code` 限定剧本、返回全部公开划线（跨条目、时间倒序）。
+ * `mine=true` 返回当前用户自己的全部划线（含 private），需登录。
+ * 也可用 `storyId` 单独限定某一条目。
+ */
+export function fetchHighlights(
+  options: {
+    code?: string
+    title?: string
+    storyId?: string
+    mine?: boolean
+    limit?: number
+    offset?: number
+  } = {}
+): Promise<HighlightListResult> {
+  const params: Record<string, any> = {}
+  if (options.code) params.code = options.code
+  if (options.title) params.title = options.title
+  if (options.storyId) params.storyId = options.storyId
+  if (options.mine) params.mine = true
+  if (options.limit != null) params.limit = options.limit
+  if (options.offset != null) params.offset = options.offset
+  return get<HighlightListResult>('/dm-guide/highlights', params)
+}
+
+/** 提交划线评论（需登录）。同一用户在同一条目同一段文本重复划线返回 409。 */
+export function createHighlight(
+  payload: CreateHighlightPayload
+): Promise<HighlightRecord> {
+  return request<HighlightRecord>({
+    url: '/dm-guide/highlights',
+    method: 'POST',
+    data: payload,
+  })
+}
+
+/** 修改划线评论（只更新传入字段：comment 传 null 清除 / visibility 互转）。只能改自己的。 */
+export function updateHighlight(
+  highlightId: string,
+  patch: { comment?: string | null; visibility?: 'private' | 'public' }
+): Promise<HighlightRecord> {
+  return request<HighlightRecord>({
+    url: `/dm-guide/highlights/${encodeURIComponent(highlightId)}`,
+    method: 'PATCH',
+    data: patch,
+  })
+}
+
+/** 删除自己的划线（软删）。 */
+export function deleteHighlight(highlightId: string): Promise<void> {
+  return request<void>({
+    url: `/dm-guide/highlights/${encodeURIComponent(highlightId)}`,
+    method: 'DELETE',
+  })
+}
+
+/* -------------------------------------------------------------------------- */
 /*                                  状态文案                                    */
 /* -------------------------------------------------------------------------- */
 

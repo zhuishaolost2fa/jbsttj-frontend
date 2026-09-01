@@ -9,11 +9,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="white">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" >
   <title>剧本杀复盘助手</title>
-  <meta name="description" content="剧本杀复盘助手：导入 DM 主持人手册并向 AI 提问，快速查证玩法、剧情与线索。">
   <meta name="theme-color" content="#5b7cfa">
+  <!--
+    SEO / 社交分享元数据由 scripts/gen-seo-pages.mjs 在构建后注入，
+    避免 SPA 启动后 usePageMeta 运行时改 DOM 来得太晚（社交爬虫不执行 JS）。
+    注入锚点：见下方 SEO:HOOK 注释，脚本会把 meta/JSON-LD 插到它之后。
+  -->
+  <!-- SEO:HOOK -->
   <script><%= htmlWebpackPlugin.options.script %></script>
 </head>
 <body>
   <div id="app"></div>
+  <noscript>
+    <div style="max-width:720px;margin:40px auto;padding:0 20px;font:16px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
+      <h1>剧本杀复盘助手</h1>
+      <p>请启用 JavaScript 以使用本应用。</p>
+      <p>可在 <a href="https://www.jbs-ttj.store/scripts/">剧本库</a> 浏览已整理的剧本复盘，或阅读 <a href="https://www.jbs-ttj.store/llms.txt">llms.txt</a> 了解站点内容。</p>
+    </div>
+  </noscript>
 </body>
 </html>

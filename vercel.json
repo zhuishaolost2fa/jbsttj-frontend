@@ -5,6 +5,22 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/scripts",
+      "destination": "/scripts/index.html"
+    },
+    {
+      "source": "/scripts/",
+      "destination": "/scripts/index.html"
+    },
+    {
+      "source": "/s/:slug",
+      "destination": "/s/:slug/index.html"
+    },
+    {
+      "source": "/s/:slug/",
+      "destination": "/s/:slug/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -43,6 +59,24 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/s/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/scripts",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
         }
       ]
     }

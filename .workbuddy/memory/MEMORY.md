@@ -1,5 +1,16 @@
 # 项目长期笔记（jbsttj-frontend）
 
+## SEO / GEO 静态内容站（2026-09-01 建立）
+- H5 是 Taro SPA + hash 路由，首屏空壳，靠 **`scripts/gen-seo-pages.mjs`（构建期）** 生成可索引静态站：
+  - `dist/scripts/index.html` 剧本库（45 部）、`dist/s/{code}/index.html` 内容页（仅 `has_guide=true` 的 13 部）
+  - `dist/robots.txt`、`sitemap.xml`、`llms.txt`、`feed.xml`，以及向 `dist/index.html` 注入 meta/JSON-LD/noscript（幂等：识别 `data-seo-injected="1"` + `<!-- SEO:BEGIN/END -->` 区间后再替换）
+- 数据全部来自后端**公开**接口：`GET /scripts`（分页）、`GET /scripts/{code}/dm-guide/qa-titles`、`GET /dm-guide/stories?code=`。
+- `build:h5` 链路：gen-favicon → gen-og-image → taro build → copy-favicon → gen-seo-pages。站点域名常量在 `gen-seo-pages.mjs` 的 `SITE_ORIGIN`（https://www.jbs-ttj.store）。
+- **死链红线**：只有生成了内容页的剧本才能链 `/s/{code}/`；其余必须链 SPA 路由 `/#/pages/scriptDetail/index?code=xxx`。改生成脚本后应重跑并扫描全站 `href` 确认 0 死链。
+- **Taro 不会拷贝 `src/static/` 到 `dist/`**（旧笔记有误）→ OG 图由 `gen-seo-pages.mjs` 兜底拷到 `dist/static/`，统一引用 `/static/og-image.png`。
+- `src/index.html` 只保留基础 meta，社交标签统一由脚本注入（避免与运行时 `usePageMeta` 重复）。
+- 新剧本上架需重新部署才会进 sitemap；可用 Vercel Deploy Hook 定时触发。
+
 ## 剧本详情页 tab 结构与故事还原（2026-08-27）
 - 详情页 = 头部 + `content-tabs`（💬 问答 / 📖 故事还原）+ 内容区；问答链路（聊天/输入栏/ready-bar）全部 `activeTab==='qa'` 守卫，布局为 `height:100vh` 弹性列 + 内容区 `flex:1;min-height:0` 内部滚动。
 - 故事还原走扁平接口 `/dm-guide/stories`（公开，camelCase）：`StoryPanel` 组件承载类型筛选 chips、卡片流、全屏阅读 overlay；阅读页正文容器 id=`story-content-dom`。

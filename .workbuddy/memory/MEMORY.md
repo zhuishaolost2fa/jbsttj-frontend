@@ -11,6 +11,12 @@
 - `src/index.html` 只保留基础 meta，社交标签统一由脚本注入（避免与运行时 `usePageMeta` 重复）。
 - 新剧本上架需重新部署才会进 sitemap；可用 Vercel Deploy Hook 定时触发。
 
+## 搜索引擎收录提交（2026-09-01）
+- **百度**：`ziyuan.baidu.com` 只支持「网址前缀」类型，站点填 `https://www.jbs-ttj.store/`。验证标签写在 `src/index.html` head（`baidu-site-verification`，内容 `codeva-pvLdncvohy`）。⚠️ **未备案站点（.store）sitemap / API 配额 = 0**，提交了也基本无效，只能等自然抓取。
+- **Bing**：`bing.com/webmasters` 可从 Google Search Console 一键导入，不用重复验证。
+- **IndexNow（主力通道）**：`npm run seo:submit`，把 sitemap 里的 URL 推给 Bing / Yandex / ChatGPT 搜索，无配额限制，秒级回源。key 与实现见 `scripts/submit-indexnow.mjs`。每次部署后跑一次即可。
+- 提交前务必确认 `https://www.jbs-ttj.store/{key}.txt` 返回纯文本（Vercel catch-all 会在文件未就绪时返回 SPA HTML，导致 403）。
+
 ## 剧本详情页 tab 结构与故事还原（2026-08-27）
 - 详情页 = 头部 + `content-tabs`（💬 问答 / 📖 故事还原）+ 内容区；问答链路（聊天/输入栏/ready-bar）全部 `activeTab==='qa'` 守卫，布局为 `height:100vh` 弹性列 + 内容区 `flex:1;min-height:0` 内部滚动。
 - 故事还原走扁平接口 `/dm-guide/stories`（公开，camelCase）：`StoryPanel` 组件承载类型筛选 chips、卡片流、全屏阅读 overlay；阅读页正文容器 id=`story-content-dom`。

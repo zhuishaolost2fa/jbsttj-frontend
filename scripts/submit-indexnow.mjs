@@ -90,13 +90,20 @@ async function submitBatch(urlList, { dryRun }) {
     return { ok: true, status: "dry-run" };
   }
 
-  // api.indexnow.org 是协议官方聚合端点（会分发给 Bing / Yandex / Seznam 等）；
-  // 失败时回退到 Bing 自己的端点，避免单一端点抖动导致整次推送失效。
-  const endpoints = ["https://api.indexnow.org/IndexNow", "https://www.bing.com/indexnow"];
+  // 两个端点都要提交，而不是「成功即停」：
+  // 1) www.bing.com/indexnow —— 只有走 Bing 自己的端点，Bing Webmaster 后台的
+  //    「IndexNow Insights」报表才会记录这次提交（api.indexnow.org 的不计数）；
+  // 2) api.indexnow.org —— 协议聚合端点，会把 URL 再分发给 Yandex / Seznam / Naver 等。
+  // 重复提交是幂等的，搜索引擎侧只当作同一次通知。
+  const endpoints = ["https://www.bing.com/indexnow", "https://api.indexnow.org/IndexNow"];
   let lastErr = null;
+  let anyOk = false;
+  let okStatus = null;
+  let okEndpoint = null;
 
   for (const endpoint of endpoints) {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    let endpointDone = false;
+    for (let attempt = 1; attempt <= 3 && !endpointDone; attempt += 1) {
       try {
         const res = await fetch(endpoint, {
           method: "POST",
@@ -105,7 +112,12 @@ async function submitBatch(urlList, { dryRun }) {
         });
         // 200 已入队 / 202 已接收待校验
         if (res.status === 200 || res.status === 202) {
-          return { ok: true, status: res.status, endpoint };
+          log(`  ✓ ${endpoint} → HTTP ${res.status}`);
+          anyOk = true;
+          okStatus = okStatus ?? res.status;
+          okEndpoint = okEndpoint ?? endpoint;
+          endpointDone = true;
+          break;
         }
         if (res.status === 429) {
           // 限流：退避后重试
@@ -118,15 +130,20 @@ async function submitBatch(urlList, { dryRun }) {
         lastErr = new Error(`${endpoint} → HTTP ${res.status} ${text.slice(0, 200)}`);
         // 4xx 里 403 = key 校验失败，换端点也没用，直接抛出给人看
         if (res.status === 403) throw lastErr;
-        break; // 其他错误换下一个端点
+        endpointDone = true; // 其他错误换下一个端点
       } catch (err) {
         lastErr = err;
         if (String(err.message).includes("HTTP 403")) throw err;
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
+        if (attempt >= 3) endpointDone = true;
+        else await new Promise((r) => setTimeout(r, attempt * 2000));
       }
     }
   }
-  return { ok: false, error: lastErr?.message || "未知错误" };
+
+  if (anyOk) {
+    return { ok: true, status: okStatus, endpoint: `${okEndpoint}（+ 聚合端点）` };
+  }
+  throw lastErr ?? new Error("所有端点均提交失败");
 }
 
 /* ── 主流程 ────────────────────────────────────────────────────────────── */

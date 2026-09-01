@@ -13,6 +13,8 @@
     "gen:favicon": "node scripts/gen-favicon.js",
     "gen:og": "node scripts/gen-og-image.js",
     "gen:seo": "node scripts/gen-seo-pages.mjs",
+    "seo:submit": "node scripts/submit-indexnow.mjs",
+    "seo:submit:all": "node scripts/submit-indexnow.mjs --all",
     "build:weapp": "taro build --type weapp",
     "build:swan": "taro build --type swan",
     "build:alipay": "taro build --type alipay",

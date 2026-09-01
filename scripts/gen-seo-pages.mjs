@@ -71,6 +71,13 @@ const MAX_FAQ_IN_LD = 30;
 /** 并发拉取剧本详情的并发度，避免把后端打爆 */
 const CONCURRENCY = 4;
 
+/**
+ * IndexNow key（Bing / Yandex / Seznam / ChatGPT 搜索等参与的即时索引协议）。
+ * 构建期会在 dist 根生成 `{key}.txt`，内容就是 key 本身 —— 搜索引擎会回源
+ * 校验这个文件以确认你拥有该站点。提交脚本见 scripts/submit-indexnow.mjs。
+ */
+const INDEXNOW_KEY = process.env.SEO_INDEXNOW_KEY || "a974c0bdda0bce480a92cb9de8a65197";
+
 /* ========================================================================== */
 /*                                  工具函数                                    */
 /* ========================================================================== */
@@ -1095,6 +1102,12 @@ async function main() {
     fs.mkdirSync(path.dirname(ogDst), { recursive: true });
     fs.copyFileSync(ogSrc, ogDst);
   }
+
+  /* ── IndexNow key 文件 ── */
+  // 搜索引擎提交时会回源校验 https://{host}/{key}.txt 的内容等于 key 本身，
+  // 以此确认站点所有权。文件内容必须只有 key，不能有换行以外的任何字符。
+  fs.writeFileSync(path.join(DIST, `${INDEXNOW_KEY}.txt`), `${INDEXNOW_KEY}\n`, "utf8");
+  log(`已生成 IndexNow key 文件 → dist/${INDEXNOW_KEY}.txt`);
 
   /* ── 首页注入 ── */
   enhanceSpaIndex(scripts);

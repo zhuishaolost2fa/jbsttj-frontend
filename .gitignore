@@ -5,3 +5,6 @@ deploy_versions/
 node_modules/
 .DS_Store
 .swc
+
+# IndexNow 已提交 URL 缓存（本地状态，不需要入库）
+.indexnow-cache.json

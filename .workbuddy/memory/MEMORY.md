@@ -14,7 +14,9 @@
 ## 搜索引擎收录提交（2026-09-01）
 - **百度**：`ziyuan.baidu.com` 只支持「网址前缀」类型，站点填 `https://www.jbs-ttj.store/`。验证标签写在 `src/index.html` head（`baidu-site-verification`，内容 `codeva-pvLdncvohy`）。⚠️ **未备案站点（.store）sitemap / API 配额 = 0**，提交了也基本无效，只能等自然抓取。
 - **Bing**：`bing.com/webmasters` 可从 Google Search Console 一键导入，不用重复验证。
+  - ⚠️ **微软账号登录 Bing Webmaster 是微软侧长期 bug**（报 "Sorry, an error occurred while processing your request"，与本地环境无关，大量用户反馈）。**改用 Google 账号登录即可绕开**；登录页支持 Microsoft / Google / Facebook 三种。
 - **IndexNow（主力通道）**：`npm run seo:submit`，把 sitemap 里的 URL 推给 Bing / Yandex / ChatGPT 搜索，无配额限制，秒级回源。key 与实现见 `scripts/submit-indexnow.mjs`。每次部署后跑一次即可。
+  - ⚠️ **必须双端点都推**：只有 `www.bing.com/indexnow` 的提交会被 Bing Webmaster 的「IndexNow Insights」报表统计；`api.indexnow.org` 只负责分发给其他引擎但不计数。只推聚合端点 → 后台一直显示 "get started"。重复提交幂等。
 - 提交前务必确认 `https://www.jbs-ttj.store/{key}.txt` 返回纯文本（Vercel catch-all 会在文件未就绪时返回 SPA HTML，导致 403）。
 
 ## 剧本详情页 tab 结构与故事还原（2026-08-27）

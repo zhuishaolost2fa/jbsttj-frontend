@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Button } from '@nutui/nutui-react-taro'
+import AppButton from '../AppButton'
 import {
   multipartUploadToOss,
   UploadAbortError,
@@ -277,9 +277,9 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
 
   return (
     <View className='import-dm-guide'>
-      <Button block type='primary' size='large' disabled={isBusy} onClick={handleImport}>
+      <AppButton block type='primary' size='large' disabled={isBusy} onClick={handleImport}>
         {isBusy ? '导入中…' : '📄 导入 DM 指南'}
-      </Button>
+      </AppButton>
 
       {panelVisible && (
         <View className='dm-upload-mask'>
@@ -387,18 +387,18 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
             <View className='dm-upload-actions'>
               {stage === 'error' && (
                 <>
-                  <Button size='small' fill='outline' onClick={reset}>
+                  <AppButton size='small' fill='outline' onClick={reset}>
                     关闭
-                  </Button>
-                  <Button size='small' type='primary' onClick={handleRetry}>
+                  </AppButton>
+                  <AppButton size='small' type='primary' onClick={handleRetry}>
                     重试
-                  </Button>
+                  </AppButton>
                 </>
               )}
               {isBusy && (
-                <Button size='small' fill='outline' onClick={handleCancel}>
+                <AppButton size='small' fill='outline' onClick={handleCancel}>
                   取消上传
-                </Button>
+                </AppButton>
               )}
             </View>
           </View>

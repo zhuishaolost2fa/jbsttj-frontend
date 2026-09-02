@@ -9,8 +9,8 @@
 import { useCallback, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { Button } from '@nutui/nutui-react-taro'
 import { goLogin, useAuth } from '../../store/auth'
+import AppButton from '../../components/AppButton'
 import Avatar from '../../components/Avatar'
 import ImportDmGuide from '../../components/ImportDmGuide'
 import ScriptSubmitForm, { deriveScriptName } from '../../components/ScriptSubmitForm'
@@ -203,9 +203,9 @@ function ProfilePage() {
         {isAuthenticated ? (
           <ImportDmGuide onSuccess={handleImportSuccess} />
         ) : (
-          <Button block type='primary' size='large' onClick={() => goLogin()}>
+          <AppButton block type='primary' size='large' onClick={() => goLogin()}>
             📄 导入 DM 指南
-          </Button>
+          </AppButton>
         )}
       </View>
 

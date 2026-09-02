@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text } from "@tarojs/components";
 import Taro, { usePullDownRefresh, useDidShow } from "@tarojs/taro";
-import { SearchBar } from "@nutui/nutui-react-taro";
+import AppSearchBar from "../../components/AppSearchBar";
 import {
   fetchScriptList,
   type ScriptItemCamel,
@@ -280,10 +280,9 @@ function ScriptLibraryPage() {
     <View className="library-page">
       {/* ===== 搜索框 ===== */}
       <View className="lib-search">
-        <SearchBar
+        <AppSearchBar
           value={keyword}
           placeholder="搜索已解析的剧本..."
-          shape="round"
           onChange={handleSearchChange}
           onSearch={handleSearchConfirm}
           onClear={handleSearchClear}

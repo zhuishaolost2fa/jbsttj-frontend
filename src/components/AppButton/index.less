@@ -1,0 +1,92 @@
+/* 跨端自绘按钮：View + Text，不依赖任何 UI 库（原因见 index.tsx 注释） */
+
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  user-select: none;
+
+  &.is-block {
+    display: flex;
+    width: 100%;
+  }
+
+  &.is-large {
+    height: 46px;
+    padding: 0 20px;
+  }
+
+  &.is-small {
+    height: 34px;
+    padding: 0 16px;
+  }
+
+  /* ===== 配色：primary ===== */
+  &.is-primary {
+    background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
+    box-shadow: 0 6px 16px rgba(91, 124, 250, 0.28);
+
+    &.is-outline {
+      background: transparent;
+      border-color: rgba(91, 124, 250, 0.45);
+      box-shadow: none;
+    }
+  }
+
+  /* ===== 配色：default ===== */
+  &.is-default {
+    background: #f4f5f8;
+    border-color: #e3e6ee;
+
+    &.is-outline {
+      background: transparent;
+    }
+  }
+
+  /* ===== 状态 ===== */
+  &.is-disabled {
+    opacity: 0.55;
+  }
+
+  /* 按下态：小程序走 hoverClass，H5 走 :active（wxss 会忽略 :active，无副作用） */
+  &.is-pressed {
+    opacity: 0.85;
+  }
+
+  &:active {
+    opacity: 0.85;
+  }
+
+  &.is-disabled:active {
+    opacity: 0.55;
+  }
+}
+
+.app-btn-text {
+  font-weight: 600;
+  line-height: 1;
+}
+
+.app-btn.is-large .app-btn-text {
+  font-size: 15px;
+}
+
+.app-btn.is-small .app-btn-text {
+  font-size: 13px;
+}
+
+.app-btn.is-primary .app-btn-text {
+  color: #ffffff;
+}
+
+.app-btn.is-primary.is-outline .app-btn-text {
+  color: #5b7cfa;
+}
+
+.app-btn.is-default .app-btn-text {
+  color: #5a6072;
+}

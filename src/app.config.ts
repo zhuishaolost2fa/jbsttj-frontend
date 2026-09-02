@@ -15,7 +15,7 @@ export default defineAppConfig({
   // （在已解析剧本范围内检索，无结果时给「请求剧本解析」CTA）。
   // 该页已从 pages 移除，**不要再往 `/pages/index/index` 跳转**——
   // 未注册的页面 navigateTo 只改 URL 不渲染、switchTab/reLaunch 直接报错。
-  // src/pages/index/ 目录目前是死代码，待确认后删除。
+  // src/pages/index/ 目录已于 2026-09-02 删除（git 可回溯）。
   //
   // 导入 DM 手册在「我的」页面；「我的剧本」不再独占 tab，收纳到「我的」页入口下。
   // tabBar 图标为本地 PNG（81x81，<40KB），存放在 src/assets/tabbar/。

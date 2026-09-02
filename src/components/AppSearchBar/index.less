@@ -1,0 +1,50 @@
+/* 跨端自绘搜索框：View + Input + Text（原因见 index.tsx 注释） */
+
+.app-searchbar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: #f1f2f7;
+  border-radius: 18px;
+}
+
+.app-searchbar-icon {
+  flex-shrink: 0;
+  margin-right: 6px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.app-searchbar-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  font-size: 14px;
+  color: #1f2330;
+}
+
+/* placeholderClass 必须是全局类名，不能写成后代选择器，否则小程序端不生效 */
+.app-searchbar-placeholder {
+  font-size: 14px;
+  color: #9aa0ae;
+}
+
+.app-searchbar-clear {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 9px;
+  background: #d7dae3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-searchbar-clear-text {
+  font-size: 10px;
+  line-height: 1;
+  color: #ffffff;
+}

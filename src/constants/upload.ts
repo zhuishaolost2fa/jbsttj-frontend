@@ -36,6 +36,8 @@ export const API_PATH = {
   abort: (taskId: string) => `/uploads/${taskId}`,
   /** 获取文件临时下载/预览地址 */
   downloadUrl: (fileId: string) => `/files/${fileId}/download-url`,
+  /** 小文件 multipart 整文件经服务端中转（小程序端唯一可用通道） */
+  simpleUpload: '/files/simple-upload',
 } as const
 
 /**
@@ -68,8 +70,20 @@ export const SIGN_BATCH_SIZE = 50
  */
 export const MAX_COMPLETE_REPAIR_ROUNDS = 2
 
-/** 允许的文件大小上限 500MB（业务预期 400MB 左右，留 25% 余量） */
+/** 分片直传（H5）允许的文件大小上限 500MB（业务预期 400MB 左右，留 25% 余量） */
 export const MAX_FILE_SIZE = 500 * 1024 * 1024
+
+/**
+ * simple-upload 通道的文件大小上限 20MB。
+ *
+ * 与后端 `app/api/v1/files.py::SIMPLE_UPLOAD_LIMIT` 严格对齐 —— 那是 multipart
+ * 整文件中转的硬上限（防止应用服务器内存被打爆），前端超了只会被 400 拦下，
+ * 不如提前拦下来给句人话。
+ *
+ * 小程序端只能走这条通道（没有 XHR、也不能直连 OSS），所以这就是小程序端的上限。
+ * DM 手册是 Word 文档，实际多在 10MB 以内，够用。
+ */
+export const SIMPLE_UPLOAD_MAX_SIZE = 20 * 1024 * 1024
 
 /**
  * DM 指南允许导入的格式白名单。

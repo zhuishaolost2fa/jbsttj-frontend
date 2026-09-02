@@ -18,6 +18,8 @@ import {
   type ScriptItemCamel,
 } from '../../services/script'
 import type { UploadResult } from '../../utils/ossMultipartUpload'
+import { formatBytes } from '../../utils/format'
+import { MAX_FILE_SIZE, SIMPLE_UPLOAD_MAX_SIZE } from '../../constants/upload'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { replayActiveTabIcon } from '../../utils/replayActiveTabIcon'
 import './index.less'
@@ -200,6 +202,16 @@ function ProfilePage() {
             <Text className='import-hint-k'>支持格式</Text>
             <Text className='import-hint-v'>
               仅支持 Word 文档（.doc / .docx）导入
+            </Text>
+          </View>
+          <View className='import-hint-row'>
+            <Text className='import-hint-k'>文件大小</Text>
+            <Text className='import-hint-v'>
+              {process.env.TARO_ENV === 'h5'
+                ? `网页版 ${formatBytes(MAX_FILE_SIZE)} 以内，小程序端 ${formatBytes(
+                    SIMPLE_UPLOAD_MAX_SIZE
+                  )} 以内`
+                : `${formatBytes(SIMPLE_UPLOAD_MAX_SIZE)} 以内（更大的文件请在网页版导入）`}
             </Text>
           </View>
           <View className='import-hint-row'>

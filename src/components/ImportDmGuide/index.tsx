@@ -9,7 +9,13 @@ import {
   type UploadResult,
   type UploadStage,
 } from '../../utils/ossMultipartUpload'
-import { pickDmGuideFile, validateDmGuideFile } from '../../utils/filePicker'
+import {
+  pickDmGuideFile,
+  pickChannel,
+  validateDmGuideFile,
+  type PickedFile,
+} from '../../utils/filePicker'
+import { simpleUploadToOss } from '../../utils/simpleUpload'
 import { formatBytes, formatDuration, formatSpeed } from '../../utils/format'
 import './index.less'
 
@@ -35,11 +41,17 @@ const STAGE_TEXT: Record<UploadStage, string> = {
  * 进度条以「单步」为单位：每一步内部从 0 涨到 100%，
  * 该步完成（进入下一步）时进度条先闪一下满格，再回落到起始值重新开始。
  */
+/**
+ * 五步指示器。
+ *
+ * 文案刻意写得中性：H5 走「分片直传 OSS」，小程序走「整文件经后端中转」，
+ * 两条链路共用这套指示器，所以不出现「分片」「OSS」这类只对一端成立的说法。
+ */
 const STEP_META = [
   { stage: 'hashing', label: '校验文件', hint: '计算文件指纹' },
   { stage: 'preparing', label: '准备上传', hint: '申请上传任务' },
-  { stage: 'uploading', label: '上传分片', hint: '直传阿里云 OSS' },
-  { stage: 'merging', label: '合并文件', hint: '服务端合并分片' },
+  { stage: 'uploading', label: '上传文件', hint: '发送到服务器' },
+  { stage: 'merging', label: '写入存储', hint: '服务端落盘入库' },
   { stage: 'finishing', label: '生成链接', hint: '换取访问地址' },
 ] as const
 
@@ -66,7 +78,8 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
   // 用 ref 镜像 currentStep，避免阶段切换 effect 读到过期值
   const stepRef = useRef(0)
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const fileRef = useRef<File | null>(null)
+  /** 保留原始选择结果：重试时直接复用，不用再唤起一次文件选择 */
+  const fileRef = useRef<PickedFile | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const setStep = useCallback((idx: number) => {
@@ -175,10 +188,19 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
     abortRef.current = null
   }, [setStep])
 
+  /**
+   * 发起上传。
+   *
+   * 按 PickedFile 的形态分派到两条链路：
+   *   - `direct`  —— H5：分片 + 预签名 URL 直传 OSS，支持秒传与断点续传
+   *   - `relayed` —— 小程序：整文件 multipart 经后端中转，有真实进度、可取消
+   *
+   * 两条链路返回的 UploadResult 结构一致，下游（匹配剧本 → 填表提交）无需感知差异。
+   */
   const startUpload = useCallback(
-    async (file: File) => {
-      fileRef.current = file
-      setFileName(file.name)
+    async (picked: PickedFile) => {
+      fileRef.current = picked
+      setFileName(picked.name)
       setErrorMsg('')
       setProgress(null)
       setStep(0)
@@ -189,12 +211,16 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
       const controller = new AbortController()
       abortRef.current = controller
 
+      const shared = {
+        signal: controller.signal,
+        onProgress: setProgress,
+        onStage: setStage,
+      }
+
       try {
-        const result = await multipartUploadToOss(file, {
-          signal: controller.signal,
-          onProgress: setProgress,
-          onStage: setStage,
-        })
+        const result = pickChannel(picked) === 'direct'
+          ? await multipartUploadToOss(picked.file!, shared)
+          : await simpleUploadToOss(picked, shared)
 
         onSuccess?.(result)
         Taro.showToast({
@@ -217,33 +243,22 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
   )
 
   const handleImport = useCallback(async () => {
-    // 小程序端：无法处理数百 MB 分片直传（chooseMessageFile 拿不到大文件、request 单包仅 10MB），
-    // 跳转到 web-view 内嵌的 H5 页面（https://www.jbs-ttj.store）完成导入。
-    // 注意用 www 域名：jbs-ttj.store 会 308 重定向到 www，web-view 跨域重定向目标也需白名单
-    if (process.env.TARO_ENV !== 'h5') {
-      const h5Url = 'https://www.jbs-ttj.store'
-      Taro.navigateTo({
-        url: `/pages/webview/index?url=${encodeURIComponent(h5Url)}`,
-      })
-      return
-    }
+    const picked = await pickDmGuideFile()
+    if (!picked) return
 
-    const file = await pickDmGuideFile()
-    if (!file) return
-
-    const invalidReason = validateDmGuideFile(file)
+    const invalidReason = validateDmGuideFile(picked)
     if (invalidReason) {
       Taro.showToast({ title: invalidReason, icon: 'none', duration: 2500 })
       return
     }
 
-    startUpload(file)
+    startUpload(picked)
   }, [startUpload])
 
   const handleCancel = useCallback(() => {
     Taro.showModal({
       title: '确认取消导入？',
-      content: '已上传的分片会被清理，需要重新上传。',
+      content: '导入会中断，需要重新开始。',
       confirmText: '确认取消',
       cancelText: '继续上传',
       success: (res) => {
@@ -320,7 +335,7 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
               <View className='dm-upload-error'>
                 <Text className='dm-error-text'>{errorMsg}</Text>
                 <Text className='dm-error-tip'>
-                  已上传的分片保存在服务端，重试将自动从断点继续。
+                  重试会重新导入该文件，不会产生重复记录。
                 </Text>
               </View>
             ) : (
@@ -355,7 +370,10 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
                 {progress && stage === 'uploading' && (
                   <View className='dm-progress-meta'>
                     <Text className='dm-sub'>
-                      分片 {progress.uploadedParts}/{progress.totalParts} ·{' '}
+                      {/* 小程序端是整文件一次请求，没有分片概念，别显示「分片 0/1」 */}
+                      {progress.totalParts > 1
+                        ? `分片 ${progress.uploadedParts}/${progress.totalParts} · `
+                        : ''}
                       {formatSpeed(progress.speed)}
                     </Text>
                     <Text className='dm-sub'>

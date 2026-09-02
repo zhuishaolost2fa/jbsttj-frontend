@@ -317,7 +317,9 @@ export async function multipartUploadToOss(
     signal,
     fingerprint = true,
     uploadType = DM_GUIDE_UPLOAD_TYPE,
-    contentType = resolveContentType(file),
+    // resolveContentType 收的是 PickedFile（H5 / 小程序双形态），
+    // 这一层拿到的是裸 File，包一层再传，别让它取不到 file.type
+    contentType = resolveContentType({ name: file.name, size: file.size, file }),
     metadata,
   } = options
 

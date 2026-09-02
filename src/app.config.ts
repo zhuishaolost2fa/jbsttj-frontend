@@ -8,7 +8,6 @@ export default defineAppConfig({
     "pages/login/index",
     "pages/myScripts/index",
     "pages/scriptRequests/index",
-    "pages/webview/index",
   ],
   // 底部主菜单：首页（搜索剧本） · 剧本库（只展示已解析完成的剧本） · 我的。
   // 导入 DM 手册已从首页迁入「我的」页面，首页只保留搜索入口。

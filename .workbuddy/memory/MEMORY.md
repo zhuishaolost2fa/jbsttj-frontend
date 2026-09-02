@@ -34,10 +34,16 @@
 - 导入 DM 手册（ImportDmGuide + ScriptSubmitForm 上传→匹配→填表→提交流程）已迁入「我的」页（pages/profile），属贡献者行为；我的页含说明卡：仅支持 Word（.doc/.docx），PDF 需 OCR 成本高不支持（PDF→Word 用 Edge 打印拆分+夸克网盘转换），收益=剧本解析费 20% 抽成，余给导入者与知识库共建者。
 - 改 app.config.ts 的 tabBar 或 pages 后需重启 dev:h5（dev server 不热更新路由表）。
 
-## 小程序端导入 DM 指南 = 引导去 H5（web-view 内嵌）
-- 小程序端无法处理数百 MB 分片直传（chooseMessageFile 拿不到大文件、request 单包 10MB），`ImportDmGuide.handleImport` 非 h5 分支改为 `Taro.navigateTo('/pages/webview/index?url=...')` 打开 H5 导入页 `https://www.jbs-ttj.store`（H5 落地页）。
-- `src/pages/webview/`：顶部提示条 + 「复制链接」兜底 + `<WebView src>`，`onError` 提示检查业务域名配置；支持 `?url=` 参数（默认 www.jbs-ttj.store）。
-- ⚠️ **必须用 www 域名**：`https://jbs-ttj.store` 会 308 重定向到 `www.jbs-ttj.store`，而微信 web-view 对跨域名重定向的**目标域名同样要求白名单**，否则可能白屏。直接加载 www 只需在小程序后台「开发-开发管理-开发设置-业务域名」配置一个 `https://www.jbs-ttj.store`（需企业主体 + 已备案域名）；未配置时白屏，靠「复制链接」兜底引导浏览器打开。
+## DM 指南上传：H5 分片直传 / 小程序整文件中转（2026-09-02 双通道）
+- `src/utils/filePicker.ts` 统一出 `PickedFile { name, size, file?, path? }`：`file` 存在 = H5（有 File，走分片），只有 `path` = 小程序（本地临时路径）。`pickChannel()` / `maxSizeOf()` 据此分派，上层不再写 `process.env.TARO_ENV` 判断链路。
+- **H5（`direct`）**：保持原 `multipartUploadToOss`（分片 + 预签名 PUT 直传 OSS，秒传/断点续传，上限 500MB）。
+- **小程序（`relayed`）**：`src/utils/simpleUpload.ts`，整文件走 `Taro.uploadFile` → `POST /files/simple-upload`（后端中转写 OSS），有真实进度 `onProgressUpdate` + 可 `abort()`；上限 20MB（对齐后端 `SIMPLE_UPLOAD_LIMIT`）。走自家后端域名，**不需要 OSS 域名白名单**。
+- 为什么小程序不走分片：① 无 XHR，拿不到 PUT 响应头 ETag；② 直传域名是 OSS，需单独配 request 合法域名；③ 后端虽有代理分片 `PUT /uploads/{id}/parts/{n}`，但要 `Taro.request` 传 ArrayBuffer（支持不稳、无上传进度）。
+- ⚠️ 小程序后台必须把后端域名加进 **「uploadFile 合法域名」**（不只是 request 合法域名），否则真机上传失败；开发者工具可勾「不校验合法域名」绕过。
+- ⚠️ `Taro.chooseMessageFile` **只能从微信聊天记录选文件**，够不到手机本地文件管理器/网盘 → 用户需先把 Word 发进任意会话（推荐「文件传输助手」）。`extension` 过滤需基础库 2.6.0+，老版本会失效，所以 `validateDmGuideFile` 的后缀校验不能省。
+- 后端 `POST /files/simple-upload` 新增可选 Form 参数 `upload_type`（`permanent` 默认 / `temporary`）；小程序传 `temporary` 落 `temp/` 前缀，与 H5 分片链路一致、受 OSS 7 天生命周期清理。`FileService.simple_upload` 的秒传查重也改为按 `prefix` 做命名空间隔离（临时不再复用永久对象）。
+- 两条链路返回的 `UploadResult` 结构一致，下游「匹配剧本 → ScriptSubmitForm」无感知。
+- **已删除** `src/pages/webview/` 页面与路由（原「小程序导入引导去 H5」的 web-view 兜底，已成死代码）。
 
 
 ## tabBar 图标约定

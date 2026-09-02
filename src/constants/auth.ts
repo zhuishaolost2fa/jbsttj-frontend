@@ -42,8 +42,14 @@ export const PASSWORD_MAX_LENGTH = 128
 
 /** 登录页路径 */
 export const LOGIN_PAGE = '/pages/login/index'
-/** 登录成功后的默认落地页 */
-export const HOME_PAGE = '/pages/index/index'
+/**
+ * 登录成功后的默认落地页。
+ *
+ * 原先指向 `/pages/index/index`（独立搜索首页），但该页已从 app.config.ts
+ * 的 pages 中移除（搜索框已合并进「剧本」tab 顶部），reLaunch 到未注册页面
+ * 会直接报错、让用户卡在登录页。改成 tabBar 的落地页「剧本」。
+ */
+export const HOME_PAGE = '/pages/scripts/index'
 
 /** 需要重新登录的后端错误码（app/core/security.py 中抛出的 AuthError code） */
 export const REAUTH_ERROR_CODES = new Set([

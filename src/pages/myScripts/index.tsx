@@ -237,9 +237,16 @@ function MyScriptsPage() {
           <Text className="empty-emoji">📥</Text>
           <Text className="empty-title">还没有导入过剧本</Text>
           <Text className="empty-desc">导入 DM 手册后，这里会显示解析进度</Text>
+          {/**
+           * 导入入口在「我的」页（tabBar 项）。
+           *
+           * 原先 switchTab 到 `/pages/index/index`（独立搜索首页），但该页已从
+           * app.config.ts 的 pages 移除、且不是 tabBar 项，switchTab 会直接失败
+           * ——按钮点了毫无反应。
+           */}
           <View
             className="empty-btn"
-            onClick={() => Taro.switchTab({ url: "/pages/index/index" })}
+            onClick={() => Taro.switchTab({ url: "/pages/profile/index" })}
           >
             <Text className="empty-btn-text">去导入</Text>
           </View>

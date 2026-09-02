@@ -9,6 +9,7 @@
 import { useCallback, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
+import { Button } from '@nutui/nutui-react-taro'
 import { goLogin, useAuth } from '../../store/auth'
 import Avatar from '../../components/Avatar'
 import ImportDmGuide from '../../components/ImportDmGuide'
@@ -147,48 +148,6 @@ function ProfilePage() {
         )}
       </View>
 
-      {/* ===== 资料 / 安全 ===== */}
-      {isAuthenticated ? (
-        <View className='menu-group'>
-          <View
-            className='menu-item'
-            onClick={() => Taro.navigateTo({ url: '/pages/profile/edit/index' })}
-          >
-            <Text className='menu-icon'>📝</Text>
-            <Text className='menu-label'>编辑资料</Text>
-            <Text className='menu-arrow'>&#x203A;</Text>
-          </View>
-          <View
-            className='menu-item'
-            onClick={() => Taro.navigateTo({ url: '/pages/profile/security/index' })}
-          >
-            <Text className='menu-icon'>🔐</Text>
-            <Text className='menu-label'>账号与安全</Text>
-            <Text className='menu-arrow'>&#x203A;</Text>
-          </View>
-        </View>
-      ) : null}
-
-      {/* ===== 功能入口 ===== */}
-      <View className='menu-group'>
-        <View
-          className='menu-item'
-          onClick={() => Taro.navigateTo({ url: '/pages/myScripts/index' })}
-        >
-          <Text className='menu-icon'>📚</Text>
-          <Text className='menu-label'>我的剧本</Text>
-          <Text className='menu-arrow'>&#x203A;</Text>
-        </View>
-        <View
-          className='menu-item'
-          onClick={() => Taro.navigateTo({ url: '/pages/scriptRequests/index' })}
-        >
-          <Text className='menu-icon'>🙋</Text>
-          <Text className='menu-label'>求解析</Text>
-          <Text className='menu-arrow'>&#x203A;</Text>
-        </View>
-      </View>
-
       {/* ===== 导入 DM 手册（从首页迁入） ===== */}
       <View className='import-card'>
         <View className='import-card-head'>
@@ -234,14 +193,62 @@ function ProfilePage() {
           </View>
         </View>
 
+        {/**
+         * 未登录时也渲染同一个主按钮，点击走登录引导。
+         *
+         * 原先这里是一条虚线占位条（「🔒 登录后导入 DM 指南」），与已登录态的
+         * 蓝色主按钮视觉差异太大，用户会以为「小程序端没有导入入口」。
+         * 入口形态保持一致，登录差异只在点击行为上体现。
+         */}
         {isAuthenticated ? (
           <ImportDmGuide onSuccess={handleImportSuccess} />
         ) : (
-          <View className='import-locked' onClick={() => goLogin()}>
-            <Text className='locked-icon'>🔒</Text>
-            <Text className='locked-text'>登录后导入 DM 指南</Text>
-          </View>
+          <Button block type='primary' size='large' onClick={() => goLogin()}>
+            📄 导入 DM 指南
+          </Button>
         )}
+      </View>
+
+      {/* ===== 资料 / 安全 ===== */}
+      {isAuthenticated ? (
+        <View className='menu-group'>
+          <View
+            className='menu-item'
+            onClick={() => Taro.navigateTo({ url: '/pages/profile/edit/index' })}
+          >
+            <Text className='menu-icon'>📝</Text>
+            <Text className='menu-label'>编辑资料</Text>
+            <Text className='menu-arrow'>&#x203A;</Text>
+          </View>
+          <View
+            className='menu-item'
+            onClick={() => Taro.navigateTo({ url: '/pages/profile/security/index' })}
+          >
+            <Text className='menu-icon'>🔐</Text>
+            <Text className='menu-label'>账号与安全</Text>
+            <Text className='menu-arrow'>&#x203A;</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {/* ===== 功能入口 ===== */}
+      <View className='menu-group'>
+        <View
+          className='menu-item'
+          onClick={() => Taro.navigateTo({ url: '/pages/myScripts/index' })}
+        >
+          <Text className='menu-icon'>📚</Text>
+          <Text className='menu-label'>我的剧本</Text>
+          <Text className='menu-arrow'>&#x203A;</Text>
+        </View>
+        <View
+          className='menu-item'
+          onClick={() => Taro.navigateTo({ url: '/pages/scriptRequests/index' })}
+        >
+          <Text className='menu-icon'>🙋</Text>
+          <Text className='menu-label'>求解析</Text>
+          <Text className='menu-arrow'>&#x203A;</Text>
+        </View>
       </View>
 
       {/* 导入成功后的「匹配剧本 → 填表 → 提交」弹层 */}

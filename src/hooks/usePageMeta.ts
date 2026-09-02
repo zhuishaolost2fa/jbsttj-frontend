@@ -84,7 +84,9 @@ function buildCanonical(): string {
     return `${SITE_ORIGIN}/s/${encodeURIComponent(params.get("code") || "")}/`;
   }
   if (path === "/pages/scripts/index") return `${SITE_ORIGIN}/scripts/`;
-  if (path === "/pages/index/index") return `${SITE_ORIGIN}/`;
+  // 其余统一兜底到站点根。
+  // 注：这里原先还有一条 `/pages/index/index` 的分支，但独立搜索首页已从
+  // app.config.ts 移除，不会命中；且它的返回值与兜底完全相同，属冗余。
   return `${SITE_ORIGIN}/`;
 }
 

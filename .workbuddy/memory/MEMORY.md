@@ -26,10 +26,12 @@
 - 共读时间线 = `GET /stories/{id}`（公开划线）+ `GET /highlights?mine=true&storyId=`（我的私有）按 id 去重合并、createdAt 倒序；自己的划线（`useAuth().user.id === h.userId`）可 PATCH 编辑 / DELETE 软删。
 
 ## Taro 路由约定
-- 所有可导航页面必须在 `src/app.config.ts` 的 `pages` 数组中注册；未注册时 `Taro.navigateTo` 只会改变浏览器 URL 而不渲染任何页面。
+- 所有可导航页面必须在 `src/app.config.ts` 的 `pages` 数组中注册；未注册时 `Taro.navigateTo` 只会改变浏览器 URL 而不渲染任何页面，`switchTab` / `reLaunch` 则直接报错。
+- **移除页面 = 必须同步清理所有跳转引用，否则静默变死链**（用户点了没反应，控制台才有报错）。改完跑一遍路由死链扫描：正则扫 `src/` 里 `Taro.{navigateTo|redirectTo|switchTab|reLaunch}({ url: '...' })`，去掉 query 后比对 pages 数组。⚠️ 扫不到**常量形式**的跳转（如 `reLaunch({ url: HOME_PAGE })`），这类要单独 grep 核对。
 - H5 新增/修改页面后必须重启 `npm run dev:h5`，dev server 不会可靠热更新 `app.config.ts` 的路由表。
 
-## 导航结构（tabBar：首页 · 剧本 · 我的）
+## 导航结构（tabBar：剧本 · 我的）
+- ⚠️ **独立的搜索首页 `pages/index` 已废弃并从 pages 移除**（2026-09-02），搜索框合并进「剧本」tab 顶部（在已解析剧本范围内检索，无结果时给「请求解析」CTA）。`src/pages/index/` 目录目前是死代码。
 - 首页（pages/index）只做搜索：品牌 + SearchBar 联想（`/scripts/autocomplete`）+ 剧透提示；不再含导入入口。
 - 导入 DM 手册（ImportDmGuide + ScriptSubmitForm 上传→匹配→填表→提交流程）已迁入「我的」页（pages/profile），属贡献者行为；我的页含说明卡：仅支持 Word（.doc/.docx），PDF 需 OCR 成本高不支持（PDF→Word 用 Edge 打印拆分+夸克网盘转换），收益=剧本解析费 20% 抽成，余给导入者与知识库共建者。
 - 改 app.config.ts 的 tabBar 或 pages 后需重启 dev:h5（dev server 不热更新路由表）。
@@ -61,6 +63,8 @@
 - Vercel 改后端地址：Project Settings → Environment Variables 加 `TARO_APP_API_ORIGIN`=<域名>，重新触发部署（构建期注入）。
 - `vercel.json`：framework=null，build=`npm run build:h5`，output=`dist`，SPA catch-all rewrite，`/js/ /css/` immutable 一年缓存。`.vercelignore` 排除 node_modules/dist/.git/.workbuddy/docs。
 - **本地构建坑（weapp 与 h5 通用）**：WorkBuddy 沙箱通过 NODE_OPTIONS 注入 genie-safe-delete shim，Taro `emptyDirectory` 清空 dist 会被 trash 二进制拦截（"Some operations were aborted"，每次只删 1 个文件就失败）。**稳定解法：`NODE_OPTIONS= npm run build:weapp` / `NODE_OPTIONS= npm run build:h5`**（剥离 shim 后 Node 原生删除构建产物目录，非个人文件，安全）。注意 H5 也一样会触发：只要 dist 里有旧文件（上次构建残留）就会在 emptyOutputDir 处失败；dist 为空时 build 自身不触发拦截。
+- ⚠️ **两端共用同一个 `dist/` 目录，会后构建的一端完全覆盖另一端**。微信开发者工具打开的就是 `dist/`，所以同时验证两端时**必须把 weapp 放在最后跑**，否则 dist 里是 H5 产物、开发者工具打不开。
+- ⚠️ **别用 `grep -c` 的结果接 `&&`**：匹配数为 0 时 `grep` 退出码是 1，`&&` 会短路导致后续构建根本不执行，让人误判成构建失败（而 0 其实代表"0 个错误"）。用 `;` 分隔或单独跑。
 
 ## 页面元信息 / 问答页引导（2026-08-24）
 - 全站页面 title/description 统一走 `src/hooks/usePageMeta.ts`（H5 守卫，设 document.title + meta description + og 标签）；新页面接入只需在组件体顶部调用一次 hook。

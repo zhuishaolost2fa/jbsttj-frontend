@@ -44,6 +44,8 @@
 - H5 是 Taro SPA + hash 路由，首屏空壳，靠 **`scripts/gen-seo-pages.mjs`（构建期）** 生成：`dist/scripts/index.html`、`dist/s/{code}/index.html`、`robots.txt`、`sitemap.xml`、`llms.txt`、`llms-full.txt`、`feed.xml`，并向 `dist/index.html` 注入 meta/JSON-LD/noscript。
 - **首页注入的幂等机制**（2026-09-05 修过一次，别再记错）：锚点是 `src/index.html` 里的 `<!-- SEO:HOOK -->`；注入内容用 `<!-- SEO:BEGIN -->` / `<!-- SEO:END -->` 包裹，下次执行靠这对标记精确清除。⚠️ 旧实现用「HOOK 到第一个 `<script`」界定边界，而注入内容自己就含 `<script type="application/ld+json">`，导致每次只清掉 meta、JSON-LD 逐次累积（重复跑 `gen:seo` 实测 3→5→7）。**验证方法：连跑几次 `gen:seo`，`grep -c 'application/ld+json' dist/index.html` 必须恒为 3。**
 - 站点验证标签（百度 `codeva-pvLdncvohy` / Google `lBCdvWp1IfNYCu1d5Md-mlksTEnF_TRKBB9xaKgrPfU`）写在 `src/index.html` 的 head、**必须在 `SEO:HOOK` 之前**，否则会被注入清理逻辑删掉。
+- ⚠️⚠️ **首页注入的红线：清除逻辑绝不能按范围通杀。** 2026-09-05 线上白屏事故：为修 JSON-LD 累积，把兜底改成「HOOK 一路清到 `</head>`」，结果把 Taro 注入的 `<script src>` 和 CSS `<link>` 一起清了，SPA 拿不到 JS，整页空白。**凡是改 `enhanceSpaIndex()`，验证必须包含 `grep -o '<script[^>]*src=' dist/index.html`** —— 只看 meta / JSON-LD 是会漏的。现在代码里有护栏：注入后检测不到带 src 的 `<script>` 就中止写入、不产出坏产物。
+- ⚠️ 兜底清除只能逐类精确匹配「我们自己注入过的标签」（description / author / robots / canonical / alternate / sitemap / og:* / twitter:* / ld+json），不许用 `[\s\S]*` 跨段匹配。
 - 数据源（后端公开接口）：`GET /scripts`、`/scripts/{code}/dm-guide/qa-titles`、`/dm-guide/stories?code=`。
 - `build:h5` 链路：gen-favicon → gen-og-image → taro build → copy-favicon → gen-seo-pages。域名常量 `SITE_ORIGIN` = https://www.jbs-ttj.store。
 - **死链红线**：只有生成了内容页的剧本才能链 `/s/{code}/`，其余必须链 SPA 路由 `/#/pages/scriptDetail/index?code=xxx`。

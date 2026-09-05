@@ -1083,17 +1083,23 @@ function enhanceSpaIndex(scripts) {
   //    改为用显式 BEGIN/END 包裹注入内容，边界精确，重复执行不再累积。
   html = html.replace(/[ \t]*<!-- SEO:BEGIN -->[\s\S]*?<!-- SEO:END -->[ \t]*\n?/g, "");
 
-  // 兜底：兼容没有 BEGIN/END 包裹的历史产物 —— 一路清到 </head> 之前。
-  // 站点验证标签都在 SEO:HOOK 之前，不会被误删。有 BEGIN/END 时跳过，
-  // 避免把 Taro 后来插入的标签一起清掉。
+  // 兜底：兼容没有 BEGIN/END 包裹的历史产物。
+  //
+  // ⚠️⚠️ 绝不能按「HOOK 到 </head>」的范围通杀 —— 那段区间里还有 Taro 注入的
+  //    <script src> 与 CSS <link>。清掉它们 SPA 就再也拿不到 JS，整页白屏
+  //    （2026-09-05 线上事故的血泪教训）。只能逐类精确清除「我们自己注入过的
+  //    那几种标签」，其余内容一律不碰。
   if (!html.includes(SEO_BEGIN)) {
-    html = html.replace(
-      new RegExp(
-        `(${HOOK.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[\\s\\S]*?(?=</head>)`,
-        "gi"
-      ),
-      HOOK
-    );
+    html = html
+      .replace(/<meta name="description"[^>]*>\s*/gi, "")
+      .replace(/<meta name="author"[^>]*>\s*/gi, "")
+      .replace(/<meta name="robots"[^>]*>\s*/gi, "")
+      .replace(/<link rel="canonical"[^>]*>\s*/gi, "")
+      .replace(/<link rel="alternate"[^>]*>\s*/gi, "")
+      .replace(/<link rel="sitemap"[^>]*>\s*/gi, "")
+      .replace(/<meta property="og:[^"]*"[^>]*>\s*/gi, "")
+      .replace(/<meta name="twitter:[^"]*"[^>]*>\s*/gi, "")
+      .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>\s*/gi, "");
   }
   // 替换 src/index.html 里的 title（注入内容会带上完整 title）
   html = html.replace(/<title>[^<]*<\/title>\s*/gi, "");
@@ -1180,6 +1186,13 @@ ${ld.map((b) => `  <script type="application/ld+json">${b}</script>`).join("\n")
 
   // 替换 src/index.html 里的简单 noscript 为更动态的（idempotent：直接覆盖）
   html = html.replace(/<noscript>[\s\S]*?<\/noscript>/i, `<noscript>\n    ${noscript}\n  </noscript>`);
+
+  // 安全护栏：注入后必须仍存在 Taro 的 JS 入口。找不到带 src 的 <script>
+  // 就说明产物结构被破坏了 —— 这时宁可中止，也绝不能写出白屏页面。
+  if (!/<script[^>]+src=/i.test(html)) {
+    log("❌ 注入后找不到 Taro 的 <script src> 入口，已中止写入 —— 避免产出白屏页面");
+    return false;
+  }
 
   fs.writeFileSync(indexPath, html, "utf8");
   log("已向 dist/index.html 注入 meta / JSON-LD / 动态 noscript 兜底");

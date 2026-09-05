@@ -65,7 +65,9 @@
 
 - 百度：只支持「网址前缀」；验证标签在 `src/index.html`（`baidu-site-verification` = `codeva-pvLdncvohy`）。⚠️ 未备案（.store）配额为 0，只能等自然抓取。
 - Bing Webmaster 可从 Google Search Console 导入。⚠️ 微软账号登录会报 "Sorry, an error occurred..."（微软侧长期 bug），**改用 Google 账号登录**。
-- IndexNow 是主力：`npm run seo:submit`。⚠️ **必须双端点都推** —— 只有 `www.bing.com/indexnow` 才被 Insights 统计，`api.indexnow.org` 只分发不计数。提交前确认 `https://www.jbs-ttj.store/{key}.txt` 返回纯文本（未就绪时 Vercel catch-all 返回 HTML → 403）。
+- IndexNow 是主力：`npm run seo:submit`（增量）/ `seo:submit:all`（全量）。⚠️ **必须双端点都推** —— 只有 `www.bing.com/indexnow` 才被 Insights 统计，`api.indexnow.org` 只分发不计数。提交前确认 `https://www.jbs-ttj.store/{key}.txt` 返回纯文本（未就绪时 Vercel catch-all 返回 HTML → 403）。
+- ⚠️ **修正 2026-09-05 的错误结论**：此前记过「必须在 BWT 后台绑定 IndexNow key，否则 Insights 永远显示 get started」——**这条是错的**。BWT **没有「绑定 key」这个动作**，IndexNow 的所有权校验完全靠站点根目录的 key 文件 + 推送时带 `key`/`keyLocation`，协议层与后台账号是解耦的。BWT 的 IndexNow 报表会在「站点已验证 + key 文件可访问 + 有推送记录」后自动出现数据，**新站通常要 2-3 天才出数**，这是后台出报表延迟，不影响 URL 实际入队抓取。
+- BWT 里跟 IndexNow 有关的两个入口：右上角齿轮 **Settings → API access → IndexNow**（可查看/生成 key），以及站点左侧导航的 IndexNow 报表页。⚠️ **千万别在 BWT 里点 Generate 重新生成 key** —— 一旦换 key 就得同步改 `scripts/gen-seo-pages.mjs` 与 `submit-indexnow.mjs` 的 `INDEXNOW_KEY` 常量、重新构建部署 key 文件、再 `--all` 全量重推，纯属自找麻烦。沿用现有 key `a974c0bd…` 最省事。
 
 ## 七、DM 手册上传：H5 分片直传 / 小程序整文件中转
 

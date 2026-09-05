@@ -1059,6 +1059,10 @@ function renderLlmsFullTxt(details) {
  * Idempotent：依靠 src/index.html 里的「<!-- SEO:HOOK -->」锚点定位注入位置；
  * 重复执行时先清掉上次注入的内容，再插入新内容，不会累积重复 meta。
  */
+/** 注入内容的边界标记：下次执行靠它精确清除，避免 JSON-LD 累积 */
+const SEO_BEGIN = "<!-- SEO:BEGIN -->";
+const SEO_END = "<!-- SEO:END -->";
+
 function enhanceSpaIndex(scripts) {
   const indexPath = path.join(DIST, "index.html");
   if (!fs.existsSync(indexPath)) {
@@ -1072,12 +1076,26 @@ function enhanceSpaIndex(scripts) {
     return false;
   }
 
-  // 1) 清掉旧注入（按 SEO:HOOK 之后到</head> 之间的内容）
-  html = html.replace(
-    new RegExp(`(${HOOK.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[\\s\\S]*?(?=<script><%=|<script\\s)`, "g"),
-    HOOK
-  );
-  // 兜底：如果上面的正则没匹配（模板顺序有变），按"再清一次"处理
+  // 1) 清掉旧注入。
+  //    ⚠️ 旧实现用「HOOK 到第一个 <script」界定边界，但注入内容自己就含
+  //    <script type="application/ld+json">，于是每次只能清掉 meta 部分，
+  //    JSON-LD 块逐次累积（实测重复执行 gen:seo 会 3 → 5 → 7…地涨）。
+  //    改为用显式 BEGIN/END 包裹注入内容，边界精确，重复执行不再累积。
+  html = html.replace(/[ \t]*<!-- SEO:BEGIN -->[\s\S]*?<!-- SEO:END -->[ \t]*\n?/g, "");
+
+  // 兜底：兼容没有 BEGIN/END 包裹的历史产物 —— 一路清到 </head> 之前。
+  // 站点验证标签都在 SEO:HOOK 之前，不会被误删。有 BEGIN/END 时跳过，
+  // 避免把 Taro 后来插入的标签一起清掉。
+  if (!html.includes(SEO_BEGIN)) {
+    html = html.replace(
+      new RegExp(
+        `(${HOOK.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[\\s\\S]*?(?=</head>)`,
+        "gi"
+      ),
+      HOOK
+    );
+  }
+  // 替换 src/index.html 里的 title（注入内容会带上完整 title）
   html = html.replace(/<title>[^<]*<\/title>\s*/gi, "");
 
   const withGuide = scripts.filter((s) => s.hasGuide);
@@ -1157,8 +1175,8 @@ function enhanceSpaIndex(scripts) {
   <meta name="twitter:image" content="${escAttr(og)}">
 ${ld.map((b) => `  <script type="application/ld+json">${b}</script>`).join("\n")}`;
 
-  // 注入到 SEO:HOOK 之后
-  html = html.replace(HOOK, `${HOOK}\n${inject}`);
+  // 注入到 SEO:HOOK 之后，用 BEGIN/END 包裹（下次执行靠这对标记精确清除）
+  html = html.replace(HOOK, `${HOOK}\n${SEO_BEGIN}\n${inject}\n${SEO_END}`);
 
   // 替换 src/index.html 里的简单 noscript 为更动态的（idempotent：直接覆盖）
   html = html.replace(/<noscript>[\s\S]*?<\/noscript>/i, `<noscript>\n    ${noscript}\n  </noscript>`);

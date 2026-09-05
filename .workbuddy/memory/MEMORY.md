@@ -21,7 +21,7 @@
 - 可导航页面必须在 `src/app.config.ts` 的 `pages` 注册，否则 `navigateTo` 只改 URL 不渲染、`switchTab`/`reLaunch` 报错。**删页面必须同步清所有跳转引用**；扫描正则 `Taro.(navigateTo|redirectTo|switchTab|reLaunch)({ url: '...' })`，⚠️ 扫不到常量形式（如 `reLaunch({ url: HOME_PAGE })`）。
 - 改 `app.config.ts`（pages/tabBar）后必须重启 `dev:h5`，不热更新路由表。
 - tabBar 图标必须是本地 PNG（81x81，<40KB，`src/assets/tabbar/tab-{scripts|profile}[-active].png`）；⚠️ 微信小程序不支持 SVG 图标。生成脚本 `scripts/gen-tabbar-icons.py`。
-- **本地构建坑**：沙箱 `NODE_OPTIONS` 的删除 shim 会拦截 Taro 清空 dist（"Some operations were aborted"）→ 用 `NODE_OPTIONS= npm run build:weapp|build:h5`。
+- **本地构建坑**：沙箱 `NODE_OPTIONS` 的删除 shim 会拦截 Taro 清空 dist（"Some operations were aborted"）→ 用 `NODE_OPTIONS= npm run build:weapp|build:h5`。⚠️ 还需显式给 `APPDATA`（沙箱里为空会让 npm-conf 崩，伪装成「找不到 config/index」），完整写法见第五节之五之二。
 - ⚠️ weapp 与 h5 共用同一个 `dist/`，后建覆盖先建；开发者工具打开的就是 `dist/`，**weapp 必须最后跑**。
 - ⚠️ 别用 `grep -c` 结果接 `&&`（0 匹配时退出码 1 会短路）。
 
@@ -46,6 +46,15 @@
 - `build:h5` 链路：gen-favicon → gen-og-image → taro build → copy-favicon → gen-seo-pages。域名常量 `SITE_ORIGIN` = https://www.jbs-ttj.store。
 - **死链红线**：只有生成了内容页的剧本才能链 `/s/{code}/`，其余必须链 SPA 路由 `/#/pages/scriptDetail/index?code=xxx`。
 - Taro 不拷贝 `src/static/` → OG 图由脚本兜底拷到 `dist/static/og-image.png`。新剧本需重新部署才进 sitemap。
+- **`dist/llms-full.txt`（513 KB，2026-09-05 新增）**：`llms.txt` 只是 37 行索引清单，AI 读完还要二次抓取；llms-full 把问答对正文（answer 截断 600 字符）+ 故事还原（截断 1500 字符）直接铺开。**故意不进 sitemap** —— IndexNow 的 URL 来源就是 sitemap 的 `<loc>`，推进 Google 索引反可能被判低质量页；`/llms.txt` 是约定路径，AI 抓取器会主动找。
+- **lastmod 必须稳定**（2026-09-05 修复）：首页与 `/scripts/` 原用 `todayISO()` 每次构建都刷新，Google 会忽略这种无信息量的日期。改为内容指纹 + 缓存 `.seo-lastmod-cache.json`（gitignore）：`fingerprint()` = sha256 前 16 位，`stableLastmod()` 指纹未变复用旧日期。内容页用 `script.updatedAt`（真实变更时间），缺失才回退指纹缓存。验证方法：连跑两次 `gen:seo` 对比 sitemap。
+- ⚠️ `MAX_QA_PER_SCRIPT = 200`，`details.qa` 是截断后的数组，`totalQa` 才是真实总量 —— llms-full.txt 与页面文案要用 `totalQa`。
+
+## 五之二、环境坑（沙箱 Bash 专属）
+
+- **`APPDATA` 在沙箱 Bash 里为空**（尤其后台任务）→ `npm-conf/lib/defaults.js:31` 在 win32 走 `path.resolve(process.env.APPDATA, 'npm-cache')` → `TypeError: paths[0] must be of type string`。**表现极具误导性：taro 报「找不到项目配置文件 config/index」**。修法：`APPDATA="C:/Users/Administrator/AppData/Roaming" NODE_OPTIONS= npm run build:h5`。用户自己终端正常。
+- **Edit 工具会「假成功」**：返回 success 但没落盘（EBUSY 文件锁的延续）。2026-09-05 改 `gen-seo-pages.mjs` 时中招 —— 函数定义了但调用没写进去，构建产物不对才发现。**验证必须 grep / 读文件核对，不能只信工具返回值；判断依据是 dist 产物，不是日志。**
+- 只跑 SEO 生成（跳过 taro build）：`APPDATA=... npm run gen:seo`，约 7s，要求 dist 已是 H5 产物。
 
 ## 六、搜索引擎收录
 

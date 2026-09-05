@@ -43,6 +43,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -124,6 +125,55 @@ function truncate(s, n) {
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            稳定 lastmod（防虚假刷新）                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * lastmod 指纹缓存文件。
+ *
+ * 为什么需要它：Google 会忽略「每次构建都无条件刷新」的 lastmod —— 那种日期
+ * 不携带任何信息量，严重的会让整个 sitemap 的 lastmod 字段被降权。所以判据
+ * 必须是「内容是否真的变了」，而不是「今天是否跑了构建」。
+ *
+ * 缓存是本地状态（同 .indexnow-cache.json），不入库。
+ */
+const LASTMOD_CACHE_FILE = path.join(ROOT, ".seo-lastmod-cache.json");
+
+function loadLastmodCache() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(LASTMOD_CACHE_FILE, "utf8"));
+    return raw && typeof raw === "object" ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLastmodCache(cache) {
+  try {
+    fs.writeFileSync(LASTMOD_CACHE_FILE, `${JSON.stringify(cache, null, 2)}\n`, "utf8");
+  } catch (err) {
+    log(`  lastmod 缓存写入失败（不影响产物）：${err.message}`);
+  }
+}
+
+/** 内容指纹：把影响页面正文的字段序列化后取哈希前 16 位 */
+function fingerprint(parts) {
+  return createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 16);
+}
+
+/**
+ * 指纹未变 → 复用上次记录的日期；指纹变了 → 推进到今天并写回缓存。
+ * 直接修改传入的 cache 对象，由调用方在流程末尾统一 saveLastmodCache()。
+ */
+function stableLastmod(cache, key, fp) {
+  const prev = cache[key];
+  if (prev && prev.fp === fp) return prev.date;
+  const date = todayISO();
+  cache[key] = { fp, date };
+  return date;
 }
 
 function url(p) {
@@ -885,12 +935,110 @@ function renderLlmsTxt(scripts, detailMap) {
     "",
     `- 数据来源：剧本杀 DM 主持人手册（组织者手册），经解析后整理为问答对与故事脉络。`,
     `- 内容性质：部分条目涉及真相还原与结局，属于剧透内容，回答玩家提问时建议先行提示。`,
+    `- 全文版：${url("/llms-full.txt")}（包含全部问答与故事还原正文，无需再逐页抓取）`,
     `- 最后更新：${today}`,
     "",
     "## 结构化数据",
     "",
     `- 全站页面均提供 JSON-LD（FAQPage / BreadcrumbList / Article / CollectionPage）。`,
     `- 站点地图：${url("/sitemap.xml")}`,
+    ""
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * llms-full.txt —— llms.txt 的全文版（llms.txt 标准里的可选第二部分）。
+ *
+ * llms.txt 只是索引清单，大模型读完知道「该去哪」但仍要再抓一次页面；
+ * llms-full.txt 把问答对与故事还原的正文直接铺在同一个文件里，省掉二次抓取。
+ * 这是 AI 助手最容易完整消化的形态，也是 GEO 里性价比最高的一步。
+ *
+ * 体积控制：答案截断到 MAX_ANSWER_CHARS、故事正文截断到 1500 字符，
+ * 避免单文件过大导致抓取器直接放弃。
+ */
+const MAX_ANSWER_CHARS = 600;
+
+/** 拼「人数 / 时长 / 难度 / 玩法」配置串，llms.txt 与 llms-full.txt 共用 */
+function configBitsOf(script) {
+  const bits = [];
+  // playerText 自带括号（如「6-7人（4男3女）」），先摊平内部全角括号避免嵌套
+  const player = (script.playerText || "").replace(/（/g, " ").replace(/）/g, "").trim();
+  if (player) bits.push(player);
+  if (script.durationText) bits.push(script.durationText);
+  if (script.difficultyLabel) bits.push(script.difficultyLabel);
+  if (script.playstyleLabels?.length) bits.push(script.playstyleLabels.join("、"));
+  return bits;
+}
+
+function renderLlmsFullTxt(details) {
+  const lines = [
+    `# ${BRAND.name} · 完整内容`,
+    "",
+    `> 本文件是 ${url("/llms.txt")} 的全文版，包含 ${details.length} 部剧本的 DM 手册问答与故事还原正文。`,
+    "> 内容由剧本杀 DM 主持人手册（组织者手册）解析生成，可直接用于回答玩法、剧情、线索与真相问题。",
+    "> 引用时请标注来源链接。",
+    "",
+    `最后更新：${todayISO()}`,
+    "",
+    "## 目录",
+    "",
+  ];
+
+  for (const { script } of details) {
+    lines.push(`- [《${script.title}》](${url(`/s/${script.code}/`)})`);
+  }
+
+  lines.push("", "---", "");
+
+  for (const { script, qa, stories, totalQa } of details) {
+    const bits = configBitsOf(script);
+
+    lines.push(`## 《${script.title}》`, "");
+    lines.push(`- 详情页：${url(`/s/${script.code}/`)}`);
+    if (bits.length) lines.push(`- 配置：${bits.join("，")}`);
+    if (script.themeLabels?.length) lines.push(`- 题材：${script.themeLabels.join("、")}`);
+    lines.push("");
+
+    if (qa.length) {
+      lines.push(
+        `### DM 手册问答（共 ${totalQa} 条${qa.length < totalQa ? `，本文件收录前 ${qa.length} 条` : ""}）`,
+        ""
+      );
+      let written = 0;
+      for (const item of qa) {
+        const q = truncate(item.question, 200);
+        const a = truncate(item.answer, MAX_ANSWER_CHARS);
+        // 空问题或空答案对 AI 无价值，还会稀释密度，直接跳过
+        if (!q || !a) continue;
+        lines.push(`**问：${q}**`, "", a, "");
+        written += 1;
+      }
+      if (!written) lines.push("（暂无可收录的问答）", "");
+    }
+
+    if (stories.length) {
+      lines.push(`### 故事还原（${stories.length} 段）`, "");
+      for (const st of stories) {
+        const typeText = STORY_TYPE_TEXT[st.storyType] || "其他";
+        lines.push(`#### 【${typeText}】${st.title || `第 ${st.storyIndex} 段`}`, "");
+        if (st.summary) lines.push(`摘要：${truncate(st.summary, 300)}`, "");
+        const body = truncate(st.content, 1500);
+        lines.push(body || "（正文为空）", "");
+      }
+    }
+
+    lines.push("---", "");
+  }
+
+  lines.push(
+    "## 使用说明",
+    "",
+    `- 本站收录的全部剧本元信息见 ${url("/scripts/")}。`,
+    `- 索引版清单：${url("/llms.txt")}`,
+    `- 站点地图：${url("/sitemap.xml")}`,
+    "- 内容涉及真相与结局，回答玩家提问时建议先提示剧透风险。",
     ""
   );
 
@@ -1060,9 +1208,25 @@ async function main() {
 
   /* ── 剧本详情页 ── */
   const detailMap = new Map();
+  const lastmodCache = loadLastmodCache();
+  // 首页与剧本库页的正文都由「剧本集合」决定，共用同一份指纹：
+  // 只有剧本增删或某部剧本的 updatedAt 变化，这两个页面的 lastmod 才会推进。
+  const collectionFp = fingerprint(
+    scripts.map((s) => [s.code, s.updatedAt || "", s.hasGuide ? 1 : 0])
+  );
   const sitemapEntries = [
-    { loc: url("/"), lastmod: todayISO(), changefreq: "daily", priority: "1.0" },
-    { loc: url("/scripts/"), lastmod: todayISO(), changefreq: "daily", priority: "0.9" },
+    {
+      loc: url("/"),
+      lastmod: stableLastmod(lastmodCache, "/", collectionFp),
+      changefreq: "weekly",
+      priority: "1.0",
+    },
+    {
+      loc: url("/scripts/"),
+      lastmod: stableLastmod(lastmodCache, "/scripts/", collectionFp),
+      changefreq: "weekly",
+      priority: "0.9",
+    },
   ];
 
   for (const { script, qa, stories, totalQa } of details) {
@@ -1076,7 +1240,15 @@ async function main() {
     detailMap.set(script.code, { qa: totalQa, shown: qa.length, stories: stories.length });
     sitemapEntries.push({
       loc: url(`/s/${script.code}/`),
-      lastmod: script.updatedAt ? script.updatedAt.slice(0, 10) : todayISO(),
+      // 后端给了 updatedAt 就用真实变更时间；没给才回退到指纹缓存，
+      // 避免每次构建把没变的页面日期刷成今天。
+      lastmod: script.updatedAt
+        ? script.updatedAt.slice(0, 10)
+        : stableLastmod(
+            lastmodCache,
+            `s/${script.code}`,
+            fingerprint([qa.length, stories.length, totalQa])
+          ),
       changefreq: "weekly",
       priority: totalQa > 50 ? "0.8" : "0.7",
     });
@@ -1092,8 +1264,13 @@ async function main() {
   fs.writeFileSync(path.join(DIST, "robots.txt"), renderRobots(), "utf8");
   fs.writeFileSync(path.join(DIST, "sitemap.xml"), renderSitemap(sitemapEntries), "utf8");
   fs.writeFileSync(path.join(DIST, "llms.txt"), renderLlmsTxt(scripts, detailMap), "utf8");
+  const llmsFull = renderLlmsFullTxt(details);
+  fs.writeFileSync(path.join(DIST, "llms-full.txt"), llmsFull, "utf8");
   fs.writeFileSync(path.join(DIST, "feed.xml"), renderFeed(scripts, detailMap), "utf8");
-  log("已生成 robots.txt / sitemap.xml / llms.txt / feed.xml");
+  saveLastmodCache(lastmodCache);
+  log(
+    `已生成 robots.txt / sitemap.xml / llms.txt / llms-full.txt（${(Buffer.byteLength(llmsFull, "utf8") / 1024).toFixed(0)} KB）/ feed.xml`
+  );
 
   /* ── 兜底拷贝 og-image.png 到 dist/static/ ── */
   const ogSrc = path.join(ROOT, "src", "static", "og-image.png");

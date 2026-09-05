@@ -8,3 +8,6 @@ node_modules/
 
 # IndexNow 已提交 URL 缓存（本地状态，不需要入库）
 .indexnow-cache.json
+
+# sitemap lastmod 内容指纹缓存（本地状态，重新构建会自动生成）
+.seo-lastmod-cache.json

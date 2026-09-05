@@ -22,6 +22,15 @@ export interface AuthUser {
   avatarColor?: number | null
   /** 个人简介 */
   bio?: string | null
+  /**
+   * 登录来源：'wechat'=微信登录，其余为空（邮箱注册）。
+   *
+   * 微信用户起初只有占位邮箱（wx_xxx@wechat.local），前端据此把
+   * 「修改邮箱」换成「绑定邮箱」入口。
+   */
+  provider?: string | null
+  /** 当前账号是否已绑定微信；已绑定则不再显示「绑定微信」入口 */
+  wechatBound?: boolean
   /** 性别 */
   gender?: 'male' | 'female' | 'other' | null
   /** 生日 YYYY-MM-DD */

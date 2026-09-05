@@ -19,7 +19,26 @@ export const AUTH_PATH = {
   changeEmail: '/auth/change-email',
   /** POST /auth/me/avatar：上传头像图片（multipart/form-data，字段名 file） */
   uploadAvatar: '/auth/me/avatar',
+  /** POST /auth/wechat/login：wx.login 的 code 换 token（仅微信小程序端可用） */
+  wechatLogin: '/auth/wechat/login',
+  /** POST /auth/wechat/bind：把微信绑到**当前登录账号**上，不建新号 */
+  wechatBind: '/auth/wechat/bind',
+  /** POST /auth/me/email/bind/start：向目标邮箱发验证码 */
+  emailBindStart: '/auth/me/email/bind/start',
+  /** POST /auth/me/email/bind/confirm：校验验证码并改邮箱，返回新 token */
+  emailBindConfirm: '/auth/me/email/bind/confirm',
+  /** POST /auth/me/password/set：微信用户设置登录密码（不校验当前密码） */
+  setPassword: '/auth/me/password/set',
 } as const
+
+/**
+ * 是否运行在微信小程序环境。
+ *
+ * 编译期常量：Taro 构建时把 `process.env.TARO_ENV` 替换成字面量，
+ * 所以 H5 产物里 `IS_WEAPP` 恒为 false，微信分支会被静态消除，
+ * 不会把 Taro.login 相关代码打进 H5 包。
+ */
+export const IS_WEAPP = process.env.TARO_ENV === 'weapp'
 
 /** 会话在本地存储中的 key */
 export const AUTH_STORAGE_KEY = 'jbsttj_auth_session'

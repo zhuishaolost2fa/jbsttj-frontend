@@ -234,3 +234,36 @@
   font-weight: 600;
   margin-left: 4px;
 }
+
+/* ===== 微信一键登录 ===== */
+.wx-btn {
+  height: 46px;
+  border-radius: 10px;
+  background: #07c160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  box-shadow: 0 6px 16px rgba(7, 193, 96, 0.26);
+  transition: opacity 0.2s ease;
+}
+
+.wx-btn:active {
+  opacity: 0.85;
+}
+
+.wx-btn.is-loading {
+  opacity: 0.65;
+}
+
+.wx-btn-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+/* 次级入口（小程序端「使用微信一键登录」），与上方的注册/登录切换拉开距离 */
+.login-switch.is-secondary {
+  margin-top: 10px;
+}

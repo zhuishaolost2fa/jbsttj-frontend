@@ -57,7 +57,12 @@ function pickUser(
 ): AuthUser | null {
   const claims = decodeJwt(accessToken)
   const src = raw && typeof raw === 'object' ? raw : {}
-  const meta = (src.user_metadata as Record<string, any>) ?? {}
+  // user_metadata 既可能在响应体的 user 上，也可能只在 JWT claims 里
+  // （刷新接口常常不带 user），两处都取一遍互为兜底。
+  const meta =
+    (src.user_metadata as Record<string, any>) ??
+    (claims?.user_metadata as Record<string, any>) ??
+    {}
 
   const id = src.id ?? src.sub ?? claims?.sub
   if (!id) return null
@@ -79,7 +84,12 @@ function pickUser(
       ? true
       : undefined
 
-  return { id: String(id), email, role, emailVerified }
+  // 登录来源（'wechat' = 微信登录）。后端建号时写进 user_metadata 并随 JWT 下发，
+  // 这样登录响应里就能直接判定来源，不必等 /auth/me 返回。
+  const provider =
+    (typeof meta.provider === 'string' && meta.provider) || undefined
+
+  return { id: String(id), email, role, emailVerified, provider }
 }
 
 /**

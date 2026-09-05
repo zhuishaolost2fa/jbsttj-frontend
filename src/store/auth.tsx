@@ -31,6 +31,14 @@ interface AuthContextValue {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<AuthSession>
   register: (email: string, password: string) => Promise<authApi.RegisterResult>
+  /** 微信小程序一键登录。非小程序环境会抛 unsupported_env */
+  loginWithWechat: () => Promise<AuthSession>
+  /** 把微信绑到当前账号上（需登录态，不建新账号）。非小程序环境会抛 unsupported_env */
+  bindWechat: () => Promise<void>
+  /** 发起绑定邮箱：发验证码到目标邮箱 */
+  startBindEmail: (email: string) => Promise<authApi.MessageResult>
+  /** 确认绑定邮箱：校验验证码并换发新 token */
+  confirmBindEmail: (email: string, code: string) => Promise<AuthSession>
   logout: () => void
   /** 主动拉取一次身份信息，用于校验本地凭证是否仍有效 */
   refreshUser: () => Promise<void>
@@ -93,6 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatarUrl: me.avatar_url ?? null,
         avatarColor: me.avatar_color ?? 0,
         bio: me.bio ?? null,
+        // /auth/me 是权威来源：微信用户即使 JWT 里丢了 user_metadata 也能补回来
+        provider: me.provider ?? prevUser?.provider ?? null,
+        wechatBound: me.wechat_bound ?? prevUser?.wechatBound ?? false,
         gender: me.gender ?? null,
         birthday: me.birthday ?? null,
         region: me.region ?? null,
@@ -133,6 +144,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authApi.register(email, password)
   }, [])
 
+  const loginWithWechat = useCallback(async () => {
+    const session = await authApi.loginWithWechat()
+    // 登录后立刻拉一次资料：登录响应里只有 id/email/role，昵称、头像、
+    // provider 都要等 /auth/me。登录页随后就 reLaunch 走了，不会触发
+    // App 挂载时的那次 refreshUser，不主动拉就得到下次冷启动才有。
+    // 失败不影响登录结果（会话已经写进去了），所以吞掉异常。
+    void refreshUser().catch(() => {})
+    return session
+  }, [refreshUser])
+
+  const bindWechat = useCallback(async () => {
+    await authApi.bindWechat()
+    // 绑完立刻拉资料，让安全页的「绑定微信」按钮马上变成「已绑定」
+    await refreshUser()
+  }, [refreshUser])
+
+  const startBindEmail = useCallback((email: string) => authApi.startBindEmail(email), [])
+
+  const confirmBindEmail = useCallback(
+    async (email: string, code: string) => {
+      const session = await authApi.confirmBindEmail(email, code)
+      // confirm 已换发新 token，再拉一次资料把新邮箱同步到 UI
+      void refreshUser().catch(() => {})
+      return session
+    },
+    [refreshUser]
+  )
+
   const logout = useCallback(() => {
     authApi.logout()
   }, [])
@@ -144,10 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: status === 'authenticated',
       login,
       register,
+      loginWithWechat,
+      bindWechat,
+      startBindEmail,
+      confirmBindEmail,
       logout,
       refreshUser,
     }),
-    [status, user, login, register, logout, refreshUser]
+    [status, user, login, register, loginWithWechat, bindWechat, startBindEmail, confirmBindEmail, logout, refreshUser]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

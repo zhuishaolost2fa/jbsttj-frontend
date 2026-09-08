@@ -934,3 +934,96 @@ export function resolveJobProgress(job?: JobProgress | null): JobProgressBar {
     percent: pct,
   }
 }
+
+/* ============================ 故事还原：合成文章 ============================ */
+
+/**
+ * 「合成文章」5 节复盘文章。
+ *
+ * 来自后端 dm.synthesize_overview 任务：finalize 末尾拿全量 StoryItem 调 LLM 一次，
+ * 把碎片卡片"串"成连贯复盘文。前端默认展示本文，下方抽屉才展开 StoryItem 卡片。
+ *
+ * 5 节顺序固定（梗概 → 诡计 → 时间线 → 角色 → 结局），对应到 anchorStories 的 5 个 key；
+ * 某节无内容（status=generating/failed 或 prompt 偶尔编出空字符串）时该 section 跳过不渲染。
+ */
+export interface SynthesisOverview {
+  /** 剧本梗概 */
+  synopsis: string
+  /** 核心诡计（密室构造 / 身份替换 / 叙事诡计…） */
+  trick: string
+  /** 完整时间线（按发生顺序，非手册行文顺序） */
+  timeline: string
+  /** 角色命运（六人各自结局、动机、转折） */
+  roles: string
+  /** 结局收束 */
+  ending: string
+  /**
+   * 锚点：每个 key 对应一节，每节下方列出"展开细节"时点哪几张 StoryItem 卡片。
+   * 值是 StoryItem.title 列表（与 fetchStories 返回的 items[].title 一致），用于在前端做
+   * "点 anchor 跳到对应卡片"；空数组 = LLM 没找到该节合适的 StoryItem 锚定（属正常容差）。
+   */
+  anchorStories: {
+    synopsis: string[]
+    trick: string[]
+    timeline: string[]
+    roles: string[]
+    ending: string[]
+  }
+}
+
+/**
+ * 合成文章接口返回（对应后端 SynthesisResult）。
+ * 后端走 Pydantic alias_generator=to_camel 输出 camelCase，前端字段同步命名。
+ */
+export interface SynthesisResult {
+  scriptCode: string
+  scriptTitle?: string | null
+  documentId: string
+  /** 未生成时 overview 为 null（前端降级为故事卡片列表） */
+  overview: SynthesisOverview | null
+  /**
+   * 合成状态机：pending / generating / ready / failed
+   * - ready：可展示
+   * - 其它：前端展示「文章生成中」占位，不展示降级卡片
+   */
+  synthesisStatus: 'pending' | 'generating' | 'ready' | 'failed'
+  createdAt?: string | null
+}
+
+/**
+ * 拉取剧本的「合成文章」（5 节复盘文章）。
+ *
+ * 走扁平接口 `GET /dm-guide/synthesis`：`code` 优先，或传 `title` 自动派生。
+ * 公开可读，无需登录。合成未生成时 overview=null，前端据此降级展示 StoryItem 卡片。
+ *
+ * 与 `fetchStories` 互补：
+ * - `/synthesis` 返回一片连贯复盘文章（默认展示）
+ * - `/stories`   返回碎片化 StoryItem 列表（细节抽屉）
+ */
+export function fetchSynthesis(
+  code: string,
+  options: { title?: string } = {}
+): Promise<SynthesisResult> {
+  const params: Record<string, any> = { code }
+  if (options.title) params.title = options.title
+  return get<SynthesisResult>('/dm-guide/synthesis', params)
+}
+
+/**
+ * 合成文章 5 节的中文标题与配色（StoryPanel 渲染与展开按钮复用）。
+ *
+ * key 与后端 SynthesisOverview 字段一一对应；变更时同步 `SYNTHESIS_SECTIONS` 渲染逻辑。
+ */
+export const SYNTHESIS_SECTIONS: Array<{
+  key: 'synopsis' | 'trick' | 'timeline' | 'roles' | 'ending'
+  title: string
+  emoji: string
+  /** 用于样式 tone 区分（less 中 section-card 子类名） */
+  tone: string
+}> = [
+  { key: 'synopsis', title: '剧本梗概',   emoji: '📖', tone: 'is-synopsis' },
+  { key: 'trick',    title: '核心诡计',   emoji: '🎭', tone: 'is-trick'    },
+  { key: 'timeline', title: '完整时间线', emoji: '⏳', tone: 'is-timeline' },
+  { key: 'roles',    title: '角色命运',   emoji: '👥', tone: 'is-roles'    },
+  { key: 'ending',   title: '结局收束',   emoji: '🏁', tone: 'is-ending'   },
+]

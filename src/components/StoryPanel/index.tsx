@@ -1,28 +1,27 @@
 /**
  * 故事还原面板（剧本详情页「故事还原」tab 的完整实现）。
  *
- * 对接后端故事还原 + 划线评论三组接口（全部扁平、挂在 /dm-guide 下）：
- *   - GET  /dm-guide/stories            故事还原列表（公开，类型筛选 + 分页）
- *   - GET  /dm-guide/stories/{id}       条目详情（正文 + 公开划线，公开）
- *   - GET  /dm-guide/highlights?mine=1  我的划线（含 private，需登录）
- *   - POST /dm-guide/highlights         提交划线（需登录）
+ * 对接后端故事还原 + 划线评论 + 合成文章三组接口（全部扁平、挂在 /dm-guide 下）：
+ *   - GET  /dm-guide/synthesis           「合成文章」：5 节连贯复盘（默认展示）
+ *   - GET  /dm-guide/stories             故事还原列表（细节抽屉，类型筛选 + 分页）
+ *   - GET  /dm-guide/stories/{id}        条目详情（正文 + 公开划线）
+ *   - GET  /dm-guide/highlights?mine=1   我的划线（含 private，需登录）
+ *   - POST /dm-guide/highlights          提交划线（需登录）
  *   - PATCH/DELETE /dm-guide/highlights/{id}  修改/删除自己的划线（需登录）
  *
- * 交互设计：
- *  - 列表页：顶部类型筛选 chips（时间线/真相/角色/线索/结局），卡片流展示
- *    条目标题 + 摘要 + 章节页码 + 公开划线数，点卡片进全屏阅读页。
- *  - 阅读页（全屏 overlay）：正文 + meta 结构化补充（时间线事件）+
- *    共读时间线（公开划线 + 我自己的私有划线合并，按时间倒序）。
- *  - 划线（仅 H5）：监听 document.selectionchange，用户选中正文中的一段
- *    文字后底部出现「划线评论」按钮 —— 划线数据（quote/偏移/前后文指纹）
- *    在 selectionchange 时就已捕获，点按钮时即使选区被浏览器收起也不丢；
- *    偏移按 Array.from 统计码点，避免 emoji 等 surrogate pair 错位。
- *    小程序端没有页面级文本选择事件，只读展示。
- *  - 自己的划线卡片上有「编辑 / 删除」：编辑弹窗可改评论与可见性
- *    （private ↔ public），删除为软删、二次确认。
+ * 交互设计（2026-09-08 改造）：
+ *  - 顶部默认展示「合成文章」：5 节连贯复盘（梗概 → 诡计 → 时间线 → 角色 → 结局），
+ *    每节末尾如果 LLM 给出了锚点（anchorStories），点"查看细节"会展开抽屉并定位到对应卡片。
+ *  - 底部一个折叠按钮"展开故事碎片"→ 展开原有 chips + 卡片流，保留类型筛选/分页/阅读/划线全套能力。
+ *  - 合成未生成（overview=null 或 status!=ready）：静默降级，直接展示原故事列表（保持旧行为）。
+ *
+ * 划线机制同旧版：
+ *  - 列表页：顶部类型筛选 chips，卡片流展示条目标题 + 摘要 + 章节页码 + 公开划线数。
+ *  - 阅读页（全屏 overlay）：正文 + meta 结构化补充 + 共读时间线（公开划线 + 我自己的私有划线合并）。
+ *  - 划线（仅 H5）：监听 document.selectionchange，捕获 quote/偏移/前后文指纹，点按钮提交。
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { View, Text, ScrollView, Textarea } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import Avatar from "../Avatar";
@@ -32,12 +31,15 @@ import {
   fetchHighlights,
   fetchStories,
   fetchStoryDetail,
+  fetchSynthesis,
   STORY_TYPE_TEXT,
   STORY_TYPE_TONE,
+  SYNTHESIS_SECTIONS,
   updateHighlight,
   type HighlightRecord,
   type StoryItem,
   type StoryTypeFilter,
+  type SynthesisResult,
 } from "../../services/dmGuide";
 import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
@@ -116,6 +118,24 @@ export default function StoryPanel({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
+  /* ------------------------------ 合成文章状态 ------------------------------ */
+  const [synthesis, setSynthesis] = useState<SynthesisResult | null>(null);
+  const [synthesisLoading, setSynthesisLoading] = useState(false);
+  const [synthesisFetched, setSynthesisFetched] = useState(false);
+  /**
+   * 合成拉取失败的提示文案；synthesisFetched=true 且 synthesis==null 且合成状态≠ready
+   * 时显示。主视图已有降级路径（直接走 chips+list），所以这里仅在 hasSynthesis 为
+   * false 但已 fetched 时用作占位提示（避免空屏观感迷惑）。
+   */
+  const [synthesisError, setSynthesisError] = useState("");
+  /**
+   * 「展开故事细节抽屉」开关。默认折叠：只展示顶部合成文章，点按钮才展开 chips + 卡片列表。
+   * 合成文章某节的"查看细节"被点击时也会自动展开，并按 anchor title 定位到对应卡片。
+   */
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  /** 锚点定位：把目标 StoryItem.id 写入，列表渲染时高亮并滚到视野内 */
+  const [anchorStoryId, setAnchorStoryId] = useState<string | null>(null);
+
   /* ------------------------------ 阅读页状态 ------------------------------ */
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
@@ -175,21 +195,104 @@ export default function StoryPanel({
     [scriptCode]
   );
 
-  /** 首次激活 tab 时才拉列表（懒加载），之后切回来不重复请求 */
+  /* ------------------------------ 合成文章加载 ------------------------------ */
+
+  /**
+   * 拉一次合成文章。失败仅记日志、不抛错：合成未生成（status != ready）或接口
+   * 5xx 时，前端降级展示原故事列表，保持旧行为。
+   */
+  const loadSynthesis = useCallback(async () => {
+    if (!scriptCode) return;
+    setSynthesisLoading(true);
+    setSynthesisError("");
+    try {
+      const res = await fetchSynthesis(scriptCode, { title: scriptTitle });
+      if (!mountedRef.current) return;
+      setSynthesis(res);
+      setSynthesisFetched(true);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      // 404 / 5xx 都按"未生成"处理：overview 留 null，前端走降级路径
+      setSynthesisError(err instanceof ApiError ? err.message : "加载失败");
+      setSynthesisFetched(true);
+    } finally {
+      if (mountedRef.current) setSynthesisLoading(false);
+    }
+  }, [scriptCode, scriptTitle]);
+
+  /* 首次激活 tab 时并行拉合成文章 + 故事列表（懒加载），合成未生成时静默降级 */
   useEffect(() => {
+    if (active && scriptCode && !synthesisFetched && !synthesisLoading) {
+      void loadSynthesis();
+    }
     if (active && scriptCode && !fetched && !loading) {
       void loadFirst(typeFilter);
     }
-  }, [active, scriptCode, fetched, loading, loadFirst, typeFilter]);
+  }, [active, scriptCode, synthesisFetched, synthesisLoading, loadSynthesis, fetched, loading, loadFirst, typeFilter]);
 
   const handleChipChange = useCallback(
     (filter: StoryTypeFilter) => {
       if (filter === typeFilter) return;
       setTypeFilter(filter);
+      setAnchorStoryId(null);
       void loadFirst(filter);
     },
     [typeFilter, loadFirst]
   );
+
+  /**
+   * 合成文章某节点「查看 X 张细节」：
+   * 1) 把抽屉打开（chips + 列表）；
+   * 2) 按 anchor title 在现有 items 里找目标 StoryItem；
+   * 3) 找不到（分页切走 / 类型过滤挡掉）则重置过滤 + 重拉第一页确保找得到；
+   * 4) 写入 anchorStoryId，列表渲染时高亮 + 滚动到视野内。
+   */
+  const handleAnchorClick = useCallback(
+    (anchorTitles: string[]) => {
+      if (!anchorTitles || !anchorTitles.length) return;
+      const targetTitle = anchorTitles[0];
+      // 先尝试在已加载 items 里命中
+      const target = items.find((it) => it.title === targetTitle);
+      if (target) {
+        setDetailsOpen(true);
+        setAnchorStoryId(target.id);
+        return;
+      }
+      // 没命中：清掉过滤 + 重拉第一页，命中后再定位
+      setDetailsOpen(true);
+      setAnchorStoryId(null);
+      setTypeFilter(undefined);
+      // 重拉强制刷新 items
+      void (async () => {
+        try {
+          const res = await fetchStories(scriptCode, { limit: PAGE_SIZE, offset: 0 });
+          if (!mountedRef.current) return;
+          setItems(res.items || []);
+          setTotal(res.total || 0);
+          setOffset(PAGE_SIZE);
+          setHasMore((res.items?.length || 0) < (res.total || 0));
+          setFetched(true);
+          // 重拉后再次尝试匹配
+          const found = (res.items || []).find((it) => it.title === targetTitle);
+          if (found) setAnchorStoryId(found.id);
+        } catch {
+          /* 静默：抽屉开了但找不到卡片也行，用户可手动翻 */
+        }
+      })();
+    },
+    [items, scriptCode]
+  );
+
+  /**
+   * 合成文章底部「展开/收起故事细节抽屉」的总开关。展开时清除 anchor 高亮，
+   * 因为滚动目标消失后高亮没意义；折叠时同步清 anchor。
+   */
+  const toggleDetails = useCallback(() => {
+    setDetailsOpen((prev) => {
+      if (prev) setAnchorStoryId(null);
+      return !prev;
+    });
+  }, []);
 
   const handleLoadMore = useCallback(async () => {
     if (loading || !hasMore || !scriptCode) return;
@@ -212,6 +315,23 @@ export default function StoryPanel({
       if (mountedRef.current) setLoading(false);
     }
   }, [scriptCode, typeFilter, offset, loading, hasMore]);
+
+  /* ------------------------------ 锚点滚动（H5 only） ------------------------------ */
+
+  /**
+   * anchorStoryId 变更后，等列表渲染完再把对应卡片滚到视野内（带高亮样式）。
+   * Taro 的 ScrollView 提供 scrollIntoView；H5 用 document.querySelector + scrollIntoView。
+   * 小程序端 anchor 仅做高亮（不强求滚动，因没有 native 滚动 API 可控）。
+   */
+  useEffect(() => {
+    if (!anchorStoryId) return;
+    const el = document.querySelector<HTMLElement>(
+      `.story-card-wrap[data-story-id="${anchorStoryId}"]`
+    );
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [anchorStoryId, items]);
 
   /* ------------------------------ 阅读页加载 ------------------------------ */
 
@@ -543,9 +663,49 @@ export default function StoryPanel({
   const detailEvents: Array<{ when?: string; what?: string }> =
     Array.isArray(activeStory?.meta?.events) ? activeStory.meta.events : [];
 
-  return (
-    <View className="story-panel">
-      {/* ===== 类型筛选 ===== */}
+  /**
+   * 「合成文章」是否可用：status=ready 且 overview 非空。
+   * 决定主视图模式：有合成 → 默认展示文章 + 折叠抽屉；无合成 → 直接展示原列表（降级）。
+   */
+  const hasSynthesis =
+    synthesis?.synthesisStatus === "ready" && !!synthesis?.overview;
+
+  /** 合成文章的 5 节渲染（按 SYNTHESIS_SECTIONS 顺序，跳过空节） */
+  const renderSynthesisSection = (
+    sec: (typeof SYNTHESIS_SECTIONS)[number]
+  ): ReactNode | null => {
+    const overview = synthesis?.overview;
+    if (!overview) return null;
+    const body = (overview[sec.key] || "").trim();
+    if (!body) return null;
+    const anchorTitles = overview.anchorStories?.[sec.key] || [];
+    return (
+      <View key={sec.key} className={`synthesis-section ${sec.tone}`}>
+        <View className="synthesis-section-head">
+          <Text className="synthesis-section-emoji">{sec.emoji}</Text>
+          <Text className="synthesis-section-title">{sec.title}</Text>
+        </View>
+        <View className="synthesis-section-body">
+          <Text className="synthesis-section-body-text">{body}</Text>
+        </View>
+        {anchorTitles.length ? (
+          <View
+            className="synthesis-anchor"
+            onClick={() => void handleAnchorClick(anchorTitles)}
+          >
+            <Text className="synthesis-anchor-text">
+              查看 {anchorTitles.length} 张细节碎片 →
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  /** 抽屉里的故事卡片列表（chips + cards），与原列表渲染共用一份代码 */
+  const renderDetailsList = () => (
+    <>
+      {/* chips */}
       <ScrollView className="story-chips" scrollX>
         {TYPE_CHIPS.map((chip) => (
           <View
@@ -560,7 +720,7 @@ export default function StoryPanel({
         ))}
       </ScrollView>
 
-      {/* ===== 故事列表 ===== */}
+      {/* 列表 */}
       <ScrollView className="story-list" scrollY>
         {loading && !items.length ? (
           <View className="story-tip">正在加载…</View>
@@ -576,7 +736,18 @@ export default function StoryPanel({
           </View>
         ) : items.length ? (
           <View className="story-cards">
-            {items.map(renderStoryCard)}
+            {items.map((it) => (
+              <View
+                key={it.id}
+                data-story-id={it.id}
+                className={`story-card-wrap${
+                  anchorStoryId === it.id ? " is-anchor" : ""
+                }`}
+                onClick={() => openStory(it)}
+              >
+                {renderStoryCard(it)}
+              </View>
+            ))}
             {hasMore ? (
               <View
                 className={`story-load-more ${loading ? "is-loading" : ""}`}
@@ -608,6 +779,91 @@ export default function StoryPanel({
           </View>
         )}
       </ScrollView>
+    </>
+  );
+
+  return (
+    <View className="story-panel">
+      {/* ===== 主视图：合成文章 OR 降级列表 ===== */}
+      {hasSynthesis ? (
+        <View className="story-panel-main">
+          <ScrollView className="synthesis-scroll" scrollY>
+            {synthesisLoading && !synthesisFetched ? (
+              <View className="synthesis-loading">
+                <Text className="synthesis-loading-text">
+                  正在整理合成文章…
+                </Text>
+              </View>
+            ) : (
+              <View className="synthesis-article">
+                {SYNTHESIS_SECTIONS.map((sec) => renderSynthesisSection(sec))}
+                {synthesis?.createdAt ? (
+                  <View className="synthesis-meta">
+                    <Text className="synthesis-meta-text">
+                      合成于 {formatTime(synthesis.createdAt)} · 由 Qwen 整理
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
+            <View className="synthesis-toggle">
+              <View
+                className={`synthesis-toggle-btn${
+                  detailsOpen ? " is-open" : ""
+                }`}
+                onClick={toggleDetails}
+              >
+                <Text className="synthesis-toggle-text">
+                  {detailsOpen
+                    ? "收起故事细节"
+                    : `展开全部 ${total || items.length} 张故事碎片`}
+                </Text>
+                <Text className="synthesis-toggle-arrow">
+                  {detailsOpen ? "▴" : "▾"}
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      ) : synthesisFetched && synthesisError && !synthesis ? (
+        /* 合成拉取失败 + 已 fetch 完毕：给一个温和提示，仍走降级列表 */
+        <View className="story-panel-main">
+          <View className="synthesis-loading">
+            <Text className="synthesis-loading-text">
+              合成文章暂不可用，展示原始故事卡片
+            </Text>
+          </View>
+          <View className="story-panel-main story-panel-main--legacy">
+            {renderDetailsList()}
+          </View>
+        </View>
+      ) : (
+        <View className="story-panel-main story-panel-main--legacy">
+          {renderDetailsList()}
+        </View>
+      )}
+
+      {/* ===== 抽屉：合成文章下的故事碎片（仅在 hasSynthesis 时用） ===== */}
+      {hasSynthesis && detailsOpen ? (
+        <View className="story-details-drawer">
+          <View
+            className="story-details-mask"
+            onClick={toggleDetails}
+          />
+          <View className="story-details-sheet">
+            <View className="story-details-head">
+              <Text className="story-details-title">故事碎片</Text>
+              <View
+                className="story-details-close"
+                onClick={toggleDetails}
+              >
+                <Text className="story-details-close-text">关闭</Text>
+              </View>
+            </View>
+            <View className="story-details-body">{renderDetailsList()}</View>
+          </View>
+        </View>
+      ) : null}
 
       {/* ===== 阅读页（全屏 overlay） ===== */}
       {detailOpen ? (

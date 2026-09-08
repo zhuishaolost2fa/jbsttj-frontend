@@ -1,0 +1,174 @@
+name: Deploy H5 (GitHub 构建 + scp 产物)
+
+# 前端 H5 的部署流水线：
+#   push main → GitHub Actions 构建 dist/ → scp 到服务器 /tmp → 备份 → 替换 → 健康检查 → 失败自动回滚
+#
+# 为什么在 GitHub Actions 构建，而不是在服务器本地构建（后端是本地构建）：
+#   1. 服务器只有 4C4G 且已跑 6 个容器（api/worker/redis/rabbitmq/pgvector/nginx），
+#      node 构建会跟业务容器抢 CPU 和内存，可能把线上服务拖慢；
+#   2. GitHub Runner 机器更强，npm ci + taro build 大约 1 分钟，服务器本地要更久；
+#   3. 服务器不必装 node/npm —— 少一套运行时就少一份维护成本；
+#   4. 产物只有 ~1MB，scp 传输成本可以忽略。
+#
+# 构建期需要 .env（TARO_APP_API_ORIGIN 决定前端请求哪个后端），所以 .env 已入库
+# —— 里面只有公开的后端地址与环境名，没有密钥。换后端域名时改 .env 再 push 即可。
+#
+# 需要的 Secrets（仓库 Settings → Secrets and variables → Actions）：
+#   SSH_HOST   服务器公网 IP
+#   SSH_USER   登录用户（腾讯云 Ubuntu 镜像是 ubuntu）
+#   SSH_KEY    SSH 私钥全文（含 -----BEGIN/END 行），公钥要已在服务器 ~/.ssh/authorized_keys
+#   SSH_PORT   可选，默认 22
+#   APP_DIR    可选，服务器项目目录，默认 /opt/jbs
+
+on:
+  push:
+    branches: [main]
+    # 只改文档/记忆时不触发部署
+    paths:
+      - "src/**"
+      - "config/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".env"
+      - ".github/workflows/deploy-h5.yml"
+  workflow_dispatch:
+    inputs:
+      skip_seo:
+        description: "跳过 SEO 静态页生成（后端接口不通时可勾）"
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # 串行部署：两次 push 紧挨着时后一次排队，避免两个部署互相覆盖或备份错乱
+    concurrency:
+      group: deploy-h5
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # 与本地开发环境对齐（本地 v22.22.2 / npm 10.9.7）
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      # ---- 构建：拆成独立 step，方便定位是哪一步挂了 ----
+      # 注意：Linux 上 APPDATA 为空不影响 taro（那是 Windows 上 npm-conf 的坑）
+
+      - name: Gen favicon
+        run: npm run gen:favicon
+
+      - name: Gen OG image
+        run: npm run gen:og
+
+      - name: Taro build H5
+        run: npx taro build --type h5
+
+      - name: Copy favicon to dist
+        run: node scripts/copy-favicon.js
+
+      # SEO 静态页需要调后端公开接口抓内容；备案期域名可能不通，
+      # 失败不应阻塞主站部署，故 continue-on-error
+      - name: Gen SEO pages
+        if: ${{ github.event.inputs.skip_seo != 'true' }}
+        run: npm run gen:seo
+        continue-on-error: true
+
+      - name: Verify SEO output
+        if: ${{ github.event.inputs.skip_seo != 'true' }}
+        run: npm run seo:verify
+        continue-on-error: true
+
+      - name: 产物自检
+        run: |
+          set -euo pipefail
+          test -f dist/index.html || { echo "::error::dist/index.html 缺失"; exit 1; }
+          test -d dist/js || { echo "::error::dist/js 缺失"; exit 1; }
+          grep -q 'id="app"' dist/index.html || { echo "::error::index.html 没有挂载点"; exit 1; }
+          echo "产物自检通过：$(du -sh dist | cut -f1)"
+
+      - name: 上传产物到服务器暂存区
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: "dist/*"
+          target: "/tmp/jbs-h5-${{ github.run_id }}"
+          # 剥掉 dist/ 这一层，让文件直接落在暂存区根目录
+          strip_components: 1
+          timeout: 120s
+
+      - name: 备份 → 替换 → 健康检查 → 失败回滚
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_DIR: ${{ secrets.APP_DIR || '/opt/jbs' }}
+          STAGING: /tmp/jbs-h5-${{ github.run_id }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          command_timeout: 5m
+          envs: APP_DIR,STAGING
+          script: |
+            set -euo pipefail
+
+            FRONTEND_DIR="$APP_DIR/frontend"
+            BACKUP="$APP_DIR/frontend.bak.$(date +%Y%m%d-%H%M%S)"
+
+            rollback() {
+              echo "::error::部署失败，回滚到备份"
+              if [ -d "$BACKUP" ]; then
+                rm -rf "$FRONTEND_DIR"
+                mv "$BACKUP" "$FRONTEND_DIR"
+                echo "已回滚到 $BACKUP"
+              fi
+              rm -rf "$STAGING"
+              exit 1
+            }
+
+            # ---- 1. 暂存区自检 ----
+            if [ ! -f "$STAGING/index.html" ] || [ ! -d "$STAGING/js" ]; then
+              echo "暂存区不完整（缺 index.html 或 js/）"
+              rm -rf "$STAGING"
+              exit 1
+            fi
+
+            # ---- 2. 备份现有产物 ----
+            mkdir -p "$FRONTEND_DIR"
+            cp -a "$FRONTEND_DIR" "$BACKUP"
+            echo "已备份：$BACKUP"
+
+            # ---- 3. 替换（只动构建产物，保留 favicon 等非构建文件）----
+            rm -rf "$FRONTEND_DIR/css" "$FRONTEND_DIR/js" "$FRONTEND_DIR/static" "$FRONTEND_DIR/index.html"
+            cp -a "$STAGING/." "$FRONTEND_DIR/"
+            echo "已替换：$FRONTEND_DIR"
+
+            # ---- 4. 健康检查：文件 + HTTP ----
+            if [ ! -s "$FRONTEND_DIR/index.html" ] || ! grep -q 'id="app"' "$FRONTEND_DIR/index.html"; then
+              echo "index.html 异常"
+              rollback
+            fi
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1/ || echo "000")
+            if [ "$CODE" != "200" ]; then
+              echo "HTTP 健康检查失败：$CODE"
+              rollback
+            fi
+            echo "健康检查通过：HTTP $CODE"
+
+            # ---- 5. 清理 ----
+            rm -rf "$STAGING"
+            # 只保留最近 5 个备份，避免撑爆磁盘
+            ls -1dt "$APP_DIR"/frontend.bak.* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+            echo "部署完成 ✅"

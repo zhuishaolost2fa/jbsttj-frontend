@@ -89,6 +89,14 @@ jobs:
         run: npm run seo:verify
         continue-on-error: true
 
+      # 写一份版本指纹随产物一起上线，线上排查时 `cat /opt/jbs/frontend/VERSION`
+      # 就能知道当前跑的是哪个 commit、什么时候构建的
+      - name: 写入版本指纹
+        run: |
+          set -euo pipefail
+          printf '%s\n%s\n' "${{ github.sha }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/VERSION
+          cat dist/VERSION
+
       - name: 产物自检
         run: |
           set -euo pipefail
@@ -167,6 +175,9 @@ jobs:
               rollback
             fi
             echo "健康检查通过：HTTP $CODE"
+            if [ -f "$FRONTEND_DIR/VERSION" ]; then
+              echo "线上版本：$(tr '\n' ' ' < "$FRONTEND_DIR/VERSION")"
+            fi
 
             # ---- 5. 清理 ----
             rm -rf "$STAGING"

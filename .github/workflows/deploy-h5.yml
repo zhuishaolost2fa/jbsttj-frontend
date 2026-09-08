@@ -22,7 +22,8 @@ name: Deploy H5 (GitHub 构建 + scp 产物)
 
 on:
   push:
-    branches: [main]
+    # 本仓库默认分支是 master（不是 main），两个都写上防止改默认分支后失效
+    branches: [main, master]
     # 只改文档/记忆时不触发部署
     paths:
       - "src/**"

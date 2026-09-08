@@ -826,6 +826,36 @@
   color: #5b7cfa;
 }
 
+/* 「本节关联」筛选条：告诉用户当前看的是筛过的子集，并提供退回全量的入口 */
+.story-details-anchorbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(91, 124, 250, 0.08);
+  border-bottom: 1px solid rgba(91, 124, 250, 0.14);
+}
+
+.story-details-anchorbar-text {
+  flex: 1;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.story-details-anchorbar-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: #5b7cfa;
+}
+
+.story-details-anchorbar-btn-text {
+  font-size: 12px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .story-details-body {
   flex: 1;
   min-height: 0;

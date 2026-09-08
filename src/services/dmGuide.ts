@@ -688,11 +688,14 @@ export function fetchStories(
     storyType?: StoryTypeFilter
     limit?: number
     offset?: number
+    /** 按 id 精准取回（合成文章「查看本节关联碎片」用），命中时后端忽略分页与类型过滤 */
+    ids?: string[]
   } = {}
 ): Promise<StoryListResult> {
   const params: Record<string, any> = { code }
   if (options.title) params.title = options.title
   if (options.storyType) params.storyType = options.storyType
+  if (options.ids && options.ids.length) params.ids = options.ids.join(',')
   if (options.limit != null) params.limit = options.limit
   if (options.offset != null) params.offset = options.offset
   return get<StoryListResult>('/dm-guide/stories', params)
@@ -946,6 +949,15 @@ export function resolveJobProgress(job?: JobProgress | null): JobProgressBar {
  * 5 节顺序固定（梗概 → 诡计 → 时间线 → 角色 → 结局），对应到 anchorStories 的 5 个 key；
  * 某节无内容（status=generating/failed 或 prompt 偶尔编出空字符串）时该 section 跳过不渲染。
  */
+/**
+ * 合成文章某一节引用的原 StoryItem 引用（对应后端 SynthesisAnchor）。
+ * id 用于精准取回，title 用于展示与 id 失效时的兜底匹配。
+ */
+export interface SynthesisAnchor {
+  id?: string | null
+  title: string
+}
+
 export interface SynthesisOverview {
   /** 剧本梗概 */
   synopsis: string
@@ -958,16 +970,16 @@ export interface SynthesisOverview {
   /** 结局收束 */
   ending: string
   /**
-   * 锚点：每个 key 对应一节，每节下方列出"展开细节"时点哪几张 StoryItem 卡片。
-   * 值是 StoryItem.title 列表（与 fetchStories 返回的 items[].title 一致），用于在前端做
-   * "点 anchor 跳到对应卡片"；空数组 = LLM 没找到该节合适的 StoryItem 锚定（属正常容差）。
+   * 锚点：每个 key 对应一节，值是该节引用的 StoryItem 引用列表。
+   * 有 id 时前端可精准拉取（`fetchStories({ ids })`）；id 为 null（老数据）时按 title 兜底。
+   * 空数组 = LLM 没找到该节合适的 StoryItem 锚定（属正常容差）。
    */
   anchorStories: {
-    synopsis: string[]
-    trick: string[]
-    timeline: string[]
-    roles: string[]
-    ending: string[]
+    synopsis: SynthesisAnchor[]
+    trick: SynthesisAnchor[]
+    timeline: SynthesisAnchor[]
+    roles: SynthesisAnchor[]
+    ending: SynthesisAnchor[]
   }
 }
 

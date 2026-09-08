@@ -39,6 +39,7 @@ import {
   type HighlightRecord,
   type StoryItem,
   type StoryTypeFilter,
+  type SynthesisAnchor,
   type SynthesisResult,
 } from "../../services/dmGuide";
 import { ApiError } from "../../services/request";
@@ -135,6 +136,16 @@ export default function StoryPanel({
   const [detailsOpen, setDetailsOpen] = useState(false);
   /** 锚点定位：把目标 StoryItem.id 写入，列表渲染时高亮并滚到视野内 */
   const [anchorStoryId, setAnchorStoryId] = useState<string | null>(null);
+  /**
+   * 「本节关联」模式：点合成文章某节的「查看 N 张细节碎片」后，抽屉只展示这 N 张。
+   * anchorSection 为 null = 展示完整碎片列表。
+   */
+  const [anchorSection, setAnchorSection] = useState<{
+    key: string;
+    title: string;
+  } | null>(null);
+  const [anchorItems, setAnchorItems] = useState<StoryItem[]>([]);
+  const [anchorLoading, setAnchorLoading] = useState(false);
 
   /* ------------------------------ 阅读页状态 ------------------------------ */
   const [detailOpen, setDetailOpen] = useState(false);
@@ -241,55 +252,96 @@ export default function StoryPanel({
   );
 
   /**
-   * 合成文章某节点「查看 X 张细节」：
-   * 1) 把抽屉打开（chips + 列表）；
-   * 2) 按 anchor title 在现有 items 里找目标 StoryItem；
-   * 3) 找不到（分页切走 / 类型过滤挡掉）则重置过滤 + 重拉第一页确保找得到；
-   * 4) 写入 anchorStoryId，列表渲染时高亮 + 滚动到视野内。
+   * 合成文章某节点「查看 N 张细节碎片」。
+   *
+   * 关键：**抽屉进入「本节关联」模式，只展示这 N 张卡片**，而不是把第一张滚到
+   * 视野里了事 —— 后者用户点进来看到的仍是上百张无关碎片，等于没有关联。
+   *
+   * 取数策略：
+   *  1) anchor 带 id → 直接 `fetchStories({ ids })` 精准取回（后端 PostgREST `id=in.(...)`）；
+   *  2) id 缺失/取回为空（老数据、purge 重跑后旧 id 失效）→ 按 title 在已加载 items 里匹配；
+   *  3) 仍匹配不上 → 重拉第一页再匹配一次；都不行就退回全量列表并清掉关联态。
    */
   const handleAnchorClick = useCallback(
-    (anchorTitles: string[]) => {
-      if (!anchorTitles || !anchorTitles.length) return;
-      const targetTitle = anchorTitles[0];
-      // 先尝试在已加载 items 里命中
-      const target = items.find((it) => it.title === targetTitle);
-      if (target) {
-        setDetailsOpen(true);
-        setAnchorStoryId(target.id);
-        return;
-      }
-      // 没命中：清掉过滤 + 重拉第一页，命中后再定位
+    (section: { key: string; title: string }, anchors: SynthesisAnchor[]) => {
+      if (!anchors || !anchors.length) return;
+
+      const ids = anchors.map((a) => a.id).filter(Boolean) as string[];
+      const titles = anchors.map((a) => a.title).filter(Boolean);
+
       setDetailsOpen(true);
-      setAnchorStoryId(null);
-      setTypeFilter(undefined);
-      // 重拉强制刷新 items
+      setAnchorLoading(true);
+      setAnchorSection({ key: section.key, title: section.title });
+
       void (async () => {
         try {
-          const res = await fetchStories(scriptCode, { limit: PAGE_SIZE, offset: 0 });
-          if (!mountedRef.current) return;
-          setItems(res.items || []);
-          setTotal(res.total || 0);
-          setOffset(PAGE_SIZE);
-          setHasMore((res.items?.length || 0) < (res.total || 0));
-          setFetched(true);
-          // 重拉后再次尝试匹配
-          const found = (res.items || []).find((it) => it.title === targetTitle);
-          if (found) setAnchorStoryId(found.id);
+          // 1) 优先按 id 精准取回
+          if (ids.length && scriptCode) {
+            const res = await fetchStories(scriptCode, { ids });
+            if (!mountedRef.current) return;
+            if (res.items?.length) {
+              setAnchorItems(res.items);
+              setAnchorStoryId(res.items[0].id);
+              return;
+            }
+          }
+          // 2) 兜底：按 title 在已加载列表里匹配
+          const hit = items.filter((it) => titles.includes(it.title));
+          if (hit.length) {
+            setAnchorItems(hit);
+            setAnchorStoryId(hit[0].id);
+            return;
+          }
+          // 3) 再兜底：重拉第一页后匹配
+          if (scriptCode) {
+            setTypeFilter(undefined);
+            const res = await fetchStories(scriptCode, { limit: PAGE_SIZE, offset: 0 });
+            if (!mountedRef.current) return;
+            setItems(res.items || []);
+            setTotal(res.total || 0);
+            setOffset(PAGE_SIZE);
+            setHasMore((res.items?.length || 0) < (res.total || 0));
+            setFetched(true);
+            const found = (res.items || []).filter((it) => titles.includes(it.title));
+            if (found.length) {
+              setAnchorItems(found);
+              setAnchorStoryId(found[0].id);
+              return;
+            }
+          }
+          // 4) 全都不行：退回全量列表，不让用户面对空抽屉
+          setAnchorSection(null);
+          setAnchorItems([]);
         } catch {
-          /* 静默：抽屉开了但找不到卡片也行，用户可手动翻 */
+          // 取数失败同样退回全量，静默处理
+          setAnchorSection(null);
+          setAnchorItems([]);
+        } finally {
+          if (mountedRef.current) setAnchorLoading(false);
         }
       })();
     },
     [items, scriptCode]
   );
 
+  /** 退出「本节关联」模式，回到完整碎片列表 */
+  const clearAnchorFilter = useCallback(() => {
+    setAnchorSection(null);
+    setAnchorItems([]);
+    setAnchorStoryId(null);
+  }, []);
+
   /**
-   * 合成文章底部「展开/收起故事细节抽屉」的总开关。展开时清除 anchor 高亮，
+   * 合成文章底部「展开/收起故事细节抽屉」的总开关。展开时清除关联态与高亮，
    * 因为滚动目标消失后高亮没意义；折叠时同步清 anchor。
    */
   const toggleDetails = useCallback(() => {
     setDetailsOpen((prev) => {
-      if (prev) setAnchorStoryId(null);
+      if (prev) {
+        setAnchorStoryId(null);
+        setAnchorSection(null);
+        setAnchorItems([]);
+      }
       return !prev;
     });
   }, []);
@@ -678,7 +730,7 @@ export default function StoryPanel({
     if (!overview) return null;
     const body = (overview[sec.key] || "").trim();
     if (!body) return null;
-    const anchorTitles = overview.anchorStories?.[sec.key] || [];
+    const anchors = overview.anchorStories?.[sec.key] || [];
     return (
       <View key={sec.key} className={`synthesis-section ${sec.tone}`}>
         <View className="synthesis-section-head">
@@ -688,13 +740,13 @@ export default function StoryPanel({
         <View className="synthesis-section-body">
           <Text className="synthesis-section-body-text">{body}</Text>
         </View>
-        {anchorTitles.length ? (
+        {anchors.length ? (
           <View
             className="synthesis-anchor"
-            onClick={() => void handleAnchorClick(anchorTitles)}
+            onClick={() => void handleAnchorClick(sec, anchors)}
           >
             <Text className="synthesis-anchor-text">
-              查看 {anchorTitles.length} 张细节碎片 →
+              查看本节关联的 {anchors.length} 张碎片 →
             </Text>
           </View>
         ) : null}
@@ -852,7 +904,9 @@ export default function StoryPanel({
           />
           <View className="story-details-sheet">
             <View className="story-details-head">
-              <Text className="story-details-title">故事碎片</Text>
+              <Text className="story-details-title">
+                {anchorSection ? `「${anchorSection.title}」关联碎片` : "故事碎片"}
+              </Text>
               <View
                 className="story-details-close"
                 onClick={toggleDetails}
@@ -860,7 +914,62 @@ export default function StoryPanel({
                 <Text className="story-details-close-text">关闭</Text>
               </View>
             </View>
-            <View className="story-details-body">{renderDetailsList()}</View>
+            {anchorSection ? (
+              <View className="story-details-anchorbar">
+                <Text className="story-details-anchorbar-text">
+                  本节关联 {anchorItems.length} 张 · 已从全部{" "}
+                  {total || items.length} 张中筛选
+                </Text>
+                <View
+                  className="story-details-anchorbar-btn"
+                  onClick={clearAnchorFilter}
+                >
+                  <Text className="story-details-anchorbar-btn-text">
+                    查看全部
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+            <View className="story-details-body">
+              {anchorSection ? (
+                anchorLoading ? (
+                  <View className="story-tip">
+                    <Text className="story-tip-text">正在定位关联碎片…</Text>
+                  </View>
+                ) : anchorItems.length ? (
+                  <ScrollView className="story-list" scrollY>
+                    <View className="story-cards">
+                      {anchorItems.map((it) => (
+                        <View
+                          key={it.id}
+                          data-story-id={it.id}
+                          className={`story-card-wrap${
+                            anchorStoryId === it.id ? " is-anchor" : ""
+                          }`}
+                          onClick={() => openStory(it)}
+                        >
+                          {renderStoryCard(it)}
+                        </View>
+                      ))}
+                    </View>
+                  </ScrollView>
+                ) : (
+                  <View className="story-tip">
+                    <Text className="story-tip-text">
+                      没找到本节关联的碎片
+                    </Text>
+                    <View
+                      className="story-retry"
+                      onClick={clearAnchorFilter}
+                    >
+                      <Text className="story-retry-text">查看全部碎片</Text>
+                    </View>
+                  </View>
+                )
+              ) : (
+                renderDetailsList()
+              )}
+            </View>
           </View>
         </View>
       ) : null}

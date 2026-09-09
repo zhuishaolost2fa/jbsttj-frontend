@@ -48,10 +48,15 @@ const TONES = {
 const EXTRA_YELLOW = new Set(['star', 'trophy', 'sparkles', 'upload', 'check-circle'])
 const EXTRA_DANGER = new Set(['alert-circle', 'trash-2', 'x'])
 
-/** tabBar：小程序要求 81x81 本地 PNG。底色为墨色，故未选中用灰、选中用品牌黄 */
+/**
+ * tabBar：小程序要求 81x81 本地 PNG。底色为墨色 #181818。
+ * idle（未选中）用 @ink-faint #B5B5B5：墨底上对比度 ~9:1，既清晰又不抢戏；
+ * 之前用 #7A7A7A 时，肉眼常因抗锯齿感知成更浅的灰，对比度不足几乎"消失"。
+ * active（选中）保持品牌黄 #FFD342。
+ */
 const TABBAR = [
-  { name: 'tab-scripts', src: 'book', idle: '#7A7A7A', active: '#FFD342' },
-  { name: 'tab-profile', src: 'user', idle: '#7A7A7A', active: '#FFD342' },
+  { name: 'tab-scripts', src: 'book', idle: '#B5B5B5', active: '#FFD342' },
+  { name: 'tab-profile', src: 'user', idle: '#B5B5B5', active: '#FFD342' },
 ]
 
 function loadSharp() {

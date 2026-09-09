@@ -26,7 +26,7 @@ Taro 4.2.1 + React 18，同时构建 H5（Vercel，www.jbs-ttj.store）与微信
 ## 二、Taro 路由 & 构建约定
 
 - 页面必须在 `src/app.config.ts` 的 `pages` 注册，否则 navigateTo 只改 URL 不渲染。**删页面要同步清所有跳转引用**；⚠️ 正则扫不到常量形式（`reLaunch({ url: HOME_PAGE })`）。改后必须重启 `dev:h5`。
-- tabBar 已恢复图标（2026-09-09）：墨底 #181818 + 未选中灰 #7A7A7A + 选中品牌黄 #FFD342，PNG 由 `scripts/gen-icons.mjs` 从 `book.svg`/`user.svg` 生成（81×81）。小程序 tabBar 图标必须本地 PNG，不支持 SVG。
+- tabBar 图标：墨底 #181818 + 选中品牌黄 #FFD342 + 未选中灰 #B5B5B5（2026-09-09 修正）。原未选中 `#7A7A7A` 在墨底上对比度低，肉眼常感知成更浅的灰，故调到 `@ink-faint #B5B5B5`（对比度 ~9:1）。PNG 由 `scripts/gen-icons.mjs` 从 `book.svg`/`user.svg` 生成（81×81）。小程序 tabBar 图标必须本地 PNG，不支持 SVG。
 - ⚠️ **weapp 与 h5 共用 `dist/`，后建覆盖先建**，微信开发者工具打开的也是 `dist/` → **weapp 必须最后构建**。
 - 构建命令：`APPDATA="C:/Users/Administrator/AppData/Roaming" NODE_OPTIONS= npm run build:h5|build:weapp`
 - ⚠️ 别用 `grep -c` 接 `&&`（0 匹配退出码 1 会短路）。

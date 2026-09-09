@@ -1,4 +1,4 @@
-@import '../../styles/tokens.less';
+@import "../../styles/tokens.less";
 /* 跨端自绘搜索框：View + Input + AppIcon（原因见 index.tsx 注释）
  * 左侧搜索图标，右侧清除按钮（x 图标）。
  */
@@ -28,6 +28,10 @@
   height: 42px;
   font-size: @fs-base;
   color: @ink;
+  .weui-input {
+    height: inherit;
+    line-height: inherit;
+  }
 }
 
 /* placeholderClass 必须是全局类名，不能写成后代选择器，否则小程序端不生效 */

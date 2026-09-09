@@ -1,4 +1,4 @@
-@import '../../styles/tokens.less';
+@import "../../styles/tokens.less";
 .detail-page {
   height: 100vh;
   overflow: hidden;
@@ -21,6 +21,9 @@
   padding: 10px 0 9px;
   text-align: center;
   position: relative;
+  .taro-img__mode-aspectfit {
+    right: 0;
+  }
 }
 
 .content-tab.is-active::after {
@@ -38,6 +41,7 @@
 .content-tab-text {
   font-size: 14px;
   color: @ink-faint;
+  margin-left: 4px;
 }
 
 .content-tab.is-active .content-tab-text {
@@ -531,8 +535,6 @@
 .send-btn.is-disabled {
   background: @line-strong;
 }
-
-
 
 /* ===== 问答目录抽屉（/qa-titles 概览） ===== */
 /* 常驻挂载 + 类名显隐：关闭只是隐藏，滚动位置与展开状态不丢 */

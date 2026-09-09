@@ -20,7 +20,7 @@
  * 退出重进不丢记录；ready-bar 提供「清除会话」（二次确认后连存档一起删）。
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, Input } from "@tarojs/components";
 import Taro, { useDidHide, useDidShow, useRouter } from "@tarojs/taro";
 import { fetchScriptDetail, type ScriptItemCamel } from "../../services/script";
@@ -65,6 +65,22 @@ interface ChatMessage {
   sources?: AskSource[];
   tookMs?: number;
   isError?: boolean;
+  /**
+   * 当这条回答来自问答目录直答时，记录对应 QA 的 id。
+   * 用于在该消息下挂「追问下一问」按钮 —— 下一条 QA 就是目录树 DFS 顺序里的下一项。
+   * 走 ask 接口、AI 生成、错误消息等场景不会写这个字段。
+   */
+  qaId?: string;
+}
+
+/**
+ * 目录树的一条平展条目：QA + 它所在章节路径。
+ * 追问时只需在 `flatCatalog` 里找当前 qaId 的下一个，整体消费开销可控
+ * （一本手册通常几百到几千条，挂载一次展平一次）。
+ */
+interface FlatCatalogEntry {
+  item: QATitleItem;
+  path: string[];
 }
 
 const SOURCE_LABEL: Record<ChatSource, string> = {
@@ -198,6 +214,39 @@ function ScriptDetailPage() {
   const [lastAskedQaId, setLastAskedQaId] = useState(
     () => getInitialChat()?.lastAskedQaId ?? ""
   );
+
+  /**
+   * 目录的平展视图：按章节 DFS 顺序把所有 `QATitleItem` 排成一条线，
+   * 每条都带着自己所在的章节路径（追问下一问时会复用这条路径填到 sources 里）。
+   * `catalog` 变化时重算，组件卸载则随 useMemo 自然丢弃。
+   */
+  const flatCatalog = useMemo<FlatCatalogEntry[]>(() => {
+    const out: FlatCatalogEntry[] = [];
+    const walk = (nodes: QATitleNode[], parentPath: string[]) => {
+      for (const n of nodes || []) {
+        const nextPath = [...parentPath, n.title];
+        if (n.qa?.length) {
+          for (const item of n.qa) out.push({ item, path: nextPath });
+        }
+        if (n.children?.length) walk(n.children, nextPath);
+      }
+    };
+    walk(catalog?.titles ?? [], []);
+    return out;
+  }, [catalog?.titles]);
+
+  /**
+   * 「下一个问题」索引：qaId → 下一条平展目录。
+   * 仅当原条目不是末尾时才会有值；末尾问答显示的「追问」按钮自动消失，
+   * 避免点了没反应。
+   */
+  const followupMap = useMemo<Record<string, FlatCatalogEntry>>(() => {
+    const m: Record<string, FlatCatalogEntry> = {};
+    for (let i = 0; i < flatCatalog.length - 1; i++) {
+      m[flatCatalog[i].item.id] = flatCatalog[i + 1];
+    }
+    return m;
+  }, [flatCatalog]);
 
   /* 用户提问面板：与问答目录平行的底部抽屉，展示待解答问题池并支持真人解答 */
   const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
@@ -536,6 +585,7 @@ function ScriptDetailPage() {
         source: "manual",
         similarity: 1,
         matchedQuestion: item.question,
+        qaId: item.id,
         sources: [
           {
             type: "qa",
@@ -552,6 +602,20 @@ function ScriptDetailPage() {
       setScrollTarget(reply.id);
     },
     [submitQuestion]
+  );
+
+  /**
+   * 追问：找到当前 QA 在目录 DFS 顺序里的下一条，按目录直答的同一条路径
+   * （handleCatalogAsk）把问与答落成消息 —— 与初次发起目录提问的体验一致。
+   * 不存在下一条（已是末尾）时沉默不做任何事，UI 上也不会渲染按钮。
+   */
+  const handleFollowupAsk = useCallback(
+    (currentQaId: string) => {
+      const next = followupMap[currentQaId];
+      if (!next) return;
+      handleCatalogAsk(next.item, next.path);
+    },
+    [followupMap, handleCatalogAsk]
   );
 
   /** 递归渲染标题树：节点可展开/收起，叶子问答可直接发起提问 */
@@ -650,14 +714,24 @@ function ScriptDetailPage() {
           className={`content-tab ${activeTab === "qa" ? "is-active" : ""}`}
           onClick={() => setActiveTab("qa")}
         >
-          <AppIcon name="message-circle" tone={activeTab === "qa" ? "ink" : "mute"} size={15} className="content-tab-icon" />
+          <AppIcon
+            name="message-circle"
+            tone={activeTab === "qa" ? "ink" : "mute"}
+            size={15}
+            className="content-tab-icon"
+          />
           <Text className="content-tab-text">问答</Text>
         </View>
         <View
           className={`content-tab ${activeTab === "story" ? "is-active" : ""}`}
           onClick={() => setActiveTab("story")}
         >
-          <AppIcon name="book-open" tone={activeTab === "story" ? "ink" : "mute"} size={15} className="content-tab-icon" />
+          <AppIcon
+            name="book-open"
+            tone={activeTab === "story" ? "ink" : "mute"}
+            size={15}
+            className="content-tab-icon"
+          />
           <Text className="content-tab-text">故事还原</Text>
         </View>
       </View>
@@ -721,11 +795,21 @@ function ScriptDetailPage() {
               className="qpanel-btn"
               onClick={() => setQuestionPanelOpen(true)}
             >
-              <AppIcon name="help-circle" tone="ink" size={14} className="toolbar-btn-icon" />
+              <AppIcon
+                name="help-circle"
+                tone="ink"
+                size={14}
+                className="toolbar-btn-icon"
+              />
               <Text className="qpanel-btn-text">用户提问</Text>
             </View>
             <View className="catalog-btn" onClick={openCatalog}>
-              <AppIcon name="list" tone="ink" size={14} className="toolbar-btn-icon" />
+              <AppIcon
+                name="list"
+                tone="ink"
+                size={14}
+                className="toolbar-btn-icon"
+              />
               <Text className="catalog-btn-text">问答目录</Text>
             </View>
           </View>
@@ -740,164 +824,187 @@ function ScriptDetailPage() {
           scrollIntoView={scrollTarget}
           scrollWithAnimation
         >
-        {!messages.length ? (
-          /* 冷启动引导（引导问题 + 导入者致谢）：仅在还没有任何消息时展示，
-           * 用户提出第一个问题（或点击引导问题）后随本区块一并清除。 */
-          <View className="chat-intro">
-            <View className="intro-icon">
-              <AppIcon name="message-circle" tone="ink" size={26} />
-            </View>
-            <Text className="intro-title">问问这本的手册</Text>
-            <Text className="intro-desc">
-              先在手册里做语义检索，命中现成答案就直接给你；
-              检索不到才请大模型作答。
-            </Text>
-            {isReady ? (
-              <>
-                {importerName ? (
-                  <View className="importer-card">
-                    <Avatar
-                      name={importerName}
-                      url={importerAvatarUrl}
-                      color={importerAvatarColor}
-                      size={26}
-                    />
-                    <Text className="importer-text">
-                      感谢 {importerName} 导入手册
-                    </Text>
-                  </View>
-                ) : null}
-                <View className="suggest-list">
-                  {guideQuestions.length ? (
-                    <>
-                      <Text className="suggest-label">大家在问</Text>
-                      {guideQuestions.map((g) => (
+          {!messages.length ? (
+            /* 冷启动引导（引导问题 + 导入者致谢）：仅在还没有任何消息时展示，
+             * 用户提出第一个问题（或点击引导问题）后随本区块一并清除。 */
+            <View className="chat-intro">
+              <View className="intro-icon">
+                <AppIcon name="message-circle" tone="ink" size={26} />
+              </View>
+              <Text className="intro-title">问问这本的手册</Text>
+              <Text className="intro-desc">
+                先在手册里做语义检索，命中现成答案就直接给你；
+                检索不到才请大模型作答。
+              </Text>
+              {isReady ? (
+                <>
+                  {importerName ? (
+                    <View className="importer-card">
+                      <Avatar
+                        name={importerName}
+                        url={importerAvatarUrl}
+                        color={importerAvatarColor}
+                        size={26}
+                      />
+                      <Text className="importer-text">
+                        感谢 {importerName} 导入手册
+                      </Text>
+                    </View>
+                  ) : null}
+                  <View className="suggest-list">
+                    {guideQuestions.length ? (
+                      <>
+                        <Text className="suggest-label">大家在问</Text>
+                        {guideQuestions.map((g) => (
+                          <View
+                            className="suggest-item"
+                            key={g.id}
+                            onClick={() => handleGuideAsk(g)}
+                          >
+                            <Text className="suggest-text">{g.question}</Text>
+                            <Text className="suggest-meta">
+                              {g.status === "answered"
+                                ? "已解答 · 点击查看"
+                                : `被问 ${g.askCount ?? 1} 次`}
+                            </Text>
+                          </View>
+                        ))}
+                      </>
+                    ) : (
+                      SUGGESTED.map((s) => (
                         <View
                           className="suggest-item"
-                          key={g.id}
-                          onClick={() => handleGuideAsk(g)}
+                          key={s}
+                          onClick={() => submitQuestion(s)}
                         >
-                          <Text className="suggest-text">{g.question}</Text>
-                          <Text className="suggest-meta">
-                            {g.status === "answered"
-                              ? "已解答 · 点击查看"
-                              : `被问 ${g.askCount ?? 1} 次`}
-                          </Text>
+                          <Text className="suggest-text">{s}</Text>
                         </View>
-                      ))}
-                    </>
-                  ) : (
-                    SUGGESTED.map((s) => (
-                      <View
-                        className="suggest-item"
-                        key={s}
-                        onClick={() => submitQuestion(s)}
-                      >
-                        <Text className="suggest-text">{s}</Text>
-                      </View>
-                    ))
-                  )}
-                </View>
-                <View className="catalog-link" onClick={openCatalog}>
-                  <Text className="catalog-link-text">
-                    先看看手册里都有什么 · 浏览问答目录
-                  </Text>
-                </View>
-              </>
-            ) : null}
-          </View>
-        ) : null}
+                      ))
+                    )}
+                  </View>
+                  <View className="catalog-link" onClick={openCatalog}>
+                    <Text className="catalog-link-text">
+                      先看看手册里都有什么 · 浏览问答目录
+                    </Text>
+                  </View>
+                </>
+              ) : null}
+            </View>
+          ) : null}
 
-        {messages.map((m) => {
-          if (m.role === "user") {
+          {messages.map((m) => {
+            if (m.role === "user") {
+              return (
+                <View className="msg-row is-user" id={m.id} key={m.id}>
+                  <View className="bubble is-user">
+                    <Text className="bubble-text">{m.content}</Text>
+                  </View>
+                </View>
+              );
+            }
+
+            const tone = m.isError
+              ? "is-error"
+              : SOURCE_TONE[m.source ?? "none"];
+            const open = !!expanded[m.id];
             return (
-              <View className="msg-row is-user" id={m.id} key={m.id}>
-                <View className="bubble is-user">
+              <View className="msg-row" id={m.id} key={m.id}>
+                <View
+                  className={`bubble is-bot ${m.isError ? "is-error" : ""}`}
+                >
+                  {!m.isError && m.source ? (
+                    <View className="bubble-head">
+                      <Text className={`src-tag ${tone}`}>
+                        {SOURCE_LABEL[m.source]}
+                      </Text>
+                      {m.source === "manual" && m.similarity ? (
+                        <Text className="src-hint">
+                          匹配度 {Math.round(m.similarity * 100)}%
+                        </Text>
+                      ) : null}
+                      {m.source === "ai" ? (
+                        <Text className="src-hint">
+                          检索未命中，已由大模型作答
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+
                   <Text className="bubble-text">{m.content}</Text>
+
+                  {m.source === "manual" && m.matchedQuestion ? (
+                    <Text className="matched-q">
+                      对应手册问题：{m.matchedQuestion}
+                    </Text>
+                  ) : null}
+
+                  {m.sources?.length ? (
+                    <View className="ref-block">
+                      <Text
+                        className="ref-toggle"
+                        onClick={() =>
+                          setExpanded((prev) => ({
+                            ...prev,
+                            [m.id]: !prev[m.id],
+                          }))
+                        }
+                      >
+                        {open ? "收起出处" : `查看出处（${m.sources.length}）`}
+                      </Text>
+                      {open
+                        ? m.sources.map((s, i) => (
+                            <View className="ref-item" key={`${m.id}_r${i}`}>
+                              <Text className="ref-meta">
+                                {s.type === "qa" ? "问答对" : "原文"}
+                                {s.sectionPath?.length
+                                  ? ` · ${s.sectionPath.join(" / ")}`
+                                  : ""}
+                                {s.pageStart ? ` · P${s.pageStart}` : ""}
+                                {` · ${Math.round((s.similarity ?? 0) * 100)}%`}
+                              </Text>
+                              <Text className="ref-text">
+                                {s.type === "qa"
+                                  ? `${s.question}\n${s.answer}`
+                                  : s.content}
+                              </Text>
+                            </View>
+                          ))
+                        : null}
+                    </View>
+                  ) : null}
+
+                  {/* 追问下一问：仅当本条来自目录直答、且目录里还有下一条时才显示。
+                   * 文本做单行省略处理，避免长问题撑破气泡宽度。 */}
+                  {m.qaId && followupMap[m.qaId] ? (
+                    <View
+                      className="followup-block"
+                      onClick={() => handleFollowupAsk(m.qaId!)}
+                    >
+                      <Text className="followup-q" numberOfLines={2}>
+                        {followupMap[m.qaId].item.question}
+                      </Text>
+                      <AppIcon
+                        name="chevron-right"
+                        tone="ink"
+                        size={14}
+                        className="followup-icon"
+                      />
+                    </View>
+                  ) : null}
                 </View>
               </View>
             );
-          }
+          })}
 
-          const tone = m.isError ? "is-error" : SOURCE_TONE[m.source ?? "none"];
-          const open = !!expanded[m.id];
-          return (
-            <View className="msg-row" id={m.id} key={m.id}>
-              <View className={`bubble is-bot ${m.isError ? "is-error" : ""}`}>
-                {!m.isError && m.source ? (
-                  <View className="bubble-head">
-                    <Text className={`src-tag ${tone}`}>
-                      {SOURCE_LABEL[m.source]}
-                    </Text>
-                    {m.source === "manual" && m.similarity ? (
-                      <Text className="src-hint">
-                        匹配度 {Math.round(m.similarity * 100)}%
-                      </Text>
-                    ) : null}
-                    {m.source === "ai" ? (
-                      <Text className="src-hint">
-                        检索未命中，已由大模型作答
-                      </Text>
-                    ) : null}
-                  </View>
-                ) : null}
-
-                <Text className="bubble-text">{m.content}</Text>
-
-                {m.source === "manual" && m.matchedQuestion ? (
-                  <Text className="matched-q">
-                    对应手册问题：{m.matchedQuestion}
-                  </Text>
-                ) : null}
-
-                {m.sources?.length ? (
-                  <View className="ref-block">
-                    <Text
-                      className="ref-toggle"
-                      onClick={() =>
-                        setExpanded((prev) => ({
-                          ...prev,
-                          [m.id]: !prev[m.id],
-                        }))
-                      }
-                    >
-                      {open ? "收起出处" : `查看出处（${m.sources.length}）`}
-                    </Text>
-                    {open
-                      ? m.sources.map((s, i) => (
-                          <View className="ref-item" key={`${m.id}_r${i}`}>
-                            <Text className="ref-meta">
-                              {s.type === "qa" ? "问答对" : "原文"}
-                              {s.sectionPath?.length
-                                ? ` · ${s.sectionPath.join(" / ")}`
-                                : ""}
-                              {s.pageStart ? ` · P${s.pageStart}` : ""}
-                              {` · ${Math.round((s.similarity ?? 0) * 100)}%`}
-                            </Text>
-                            <Text className="ref-text">
-                              {s.type === "qa"
-                                ? `${s.question}\n${s.answer}`
-                                : s.content}
-                            </Text>
-                          </View>
-                        ))
-                      : null}
-                  </View>
-                ) : null}
+          {asking ? (
+            <View className="msg-row">
+              <View className="bubble is-bot">
+                <Text className="bubble-text">正在检索手册…</Text>
               </View>
             </View>
-          );
-        })}
+          ) : null}
 
-        {asking ? (
-          <View className="msg-row">
-            <View className="bubble is-bot">
-              <Text className="bubble-text">正在检索手册…</Text>
-            </View>
-          </View>
-        ) : null}
-
-        <View className="chat-bottom-space" />
+          <View className="chat-bottom-space" />
         </ScrollView>
       ) : (
         <StoryPanel

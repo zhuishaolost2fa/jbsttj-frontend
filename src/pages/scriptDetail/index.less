@@ -492,6 +492,31 @@
   word-break: break-word;
 }
 
+/* ===== 追问下一问 =====
+ * 只在「来自目录直答」的气泡下出现：把目录里该 QA 的下一条问题以内联块呈现，
+ * 一眼能看出「下一问是谁」，点了就走和初次目录直答一模一样的链路 */
+.followup-block {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: @fill;
+  border-radius: 10px;
+}
+
+.followup-q {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: @ink;
+  line-height: 1.5;
+}
+
+.followup-icon {
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
 .chat-bottom-space {
   height: 12px;
 }

@@ -157,7 +157,7 @@ function MyScriptsPage() {
     Taro.navigateTo({
       url: `/pages/scriptDetail/index?code=${encodeURIComponent(
         s.code
-      )}&title=${encodeURIComponent(s.title || "")}`,
+      )}`,
     });
   };
 

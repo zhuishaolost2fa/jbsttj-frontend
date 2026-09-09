@@ -146,13 +146,12 @@ function persistChat(
 function ScriptDetailPage() {
   const router = useRouter();
   const scriptCode = decodeURIComponent(String(router.params?.code || ""));
-  const presetTitle = decodeURIComponent(String(router.params?.title || ""));
 
   const { isAuthenticated } = useAuth();
   const [script, setScript] = useState<ScriptItemCamel | null>(null);
 
   /* 页面标题 / 描述：详情加载完成后随剧本名更新 */
-  const metaTitle = script?.title || presetTitle || "剧本详情";
+  const metaTitle = script?.title || "剧本详情";
   usePageMeta(
     `${metaTitle} · 剧本杀复盘助手`,
     `《${metaTitle}》DM 手册智能问答与故事还原：优先命中手册原文，未命中再由大模型作答；支持浏览时间线、真相与角色脉络的共读还原页。`
@@ -458,7 +457,7 @@ function ScriptDetailPage() {
   useEffect(() => {
     if (!isReady || !scriptCode || guideFetched) return;
     let alive = true;
-    fetchGuideQuestions(scriptCode, { title: script?.title || presetTitle })
+    fetchGuideQuestions(scriptCode, { title: script?.title })
       .then((res) => {
         if (!alive) return;
         setGuideQuestions(res.items ?? []);
@@ -617,7 +616,7 @@ function ScriptDetailPage() {
     );
   }
 
-  const title = script?.title || presetTitle || "剧本详情";
+  const title = script?.title || "剧本详情";
 
   return (
     <View className="detail-page">
@@ -903,7 +902,7 @@ function ScriptDetailPage() {
       ) : (
         <StoryPanel
           scriptCode={scriptCode}
-          scriptTitle={script?.title || presetTitle}
+          scriptTitle={script?.title}
           active={activeTab === "story"}
           isAuthenticated={isAuthenticated}
         />
@@ -963,7 +962,7 @@ function ScriptDetailPage() {
       {/* ===== 用户提问面板（底部抽屉，与问答目录并行） ===== */}
       <QuestionPanel
         scriptCode={scriptCode}
-        scriptTitle={script?.title || presetTitle}
+        scriptTitle={script?.title}
         open={questionPanelOpen}
         onClose={() => setQuestionPanelOpen(false)}
         isAuthenticated={isAuthenticated}

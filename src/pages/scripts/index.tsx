@@ -179,7 +179,7 @@ function ScriptLibraryPage() {
     Taro.navigateTo({
       url: `/pages/scriptDetail/index?code=${encodeURIComponent(
         s.code
-      )}&title=${encodeURIComponent(s.title || "")}`,
+      )}`,
     });
   }, []);
 
@@ -266,7 +266,7 @@ function ScriptLibraryPage() {
       Taro.navigateTo({
         url: `/pages/scriptDetail/index?code=${encodeURIComponent(
           item.scriptCode
-        )}&title=${encodeURIComponent(item.scriptTitle || "")}`,
+        )}`,
       });
     },
     [closeLeaderboard]

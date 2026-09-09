@@ -183,7 +183,7 @@ function ScriptRequestsPage() {
     Taro.navigateTo({
       url: `/pages/scriptDetail/index?code=${encodeURIComponent(
         item.scriptCode
-      )}&title=${encodeURIComponent(item.scriptTitle || "")}`,
+      )}`,
     });
   }, []);
 

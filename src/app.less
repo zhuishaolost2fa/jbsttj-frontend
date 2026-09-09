@@ -1,7 +1,21 @@
+@import './styles/tokens.less';
+
 /* 禁用双击缩放（配合 meta viewport 与 app.ts 的 gesture 拦截，实现全面禁缩放） */
 html,
 body {
   touch-action: manipulation;
+}
+
+/* 全局底色与基础排版：所有页面共享，页面内不要再重复声明 font-family */
+page {
+  background: @canvas;
+  color: @ink;
+  font-size: @fs-base;
+  line-height: 1.6;
+}
+
+.taro_router.taro_router > .taro_page {
+  z-index: unset;
 }
 
 .taro_router.taro_router > .taro_page {

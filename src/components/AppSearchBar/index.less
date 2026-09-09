@@ -1,50 +1,49 @@
-/* 跨端自绘搜索框：View + Input + Text（原因见 index.tsx 注释） */
+@import '../../styles/tokens.less';
+/* 跨端自绘搜索框：View + Input + AppIcon（原因见 index.tsx 注释）
+ * 左侧搜索图标，右侧清除按钮（x 图标）。
+ */
 
 .app-searchbar {
   display: flex;
   align-items: center;
-  height: 36px;
-  padding: 0 12px;
+  height: 44px;
+  padding: 0 @sp-3;
   box-sizing: border-box;
-  background: #f1f2f7;
-  border-radius: 18px;
+  background: @paper;
+  border: 1px solid @line-strong;
+  border-radius: @r-sm;
 }
 
-.app-searchbar-icon {
+.app-searchbar-leading {
   flex-shrink: 0;
-  margin-right: 6px;
-  font-size: 13px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: @sp-2;
 }
 
 .app-searchbar-input {
   flex: 1;
   min-width: 0;
-  height: 36px;
-  font-size: 14px;
-  color: #1f2330;
+  height: 42px;
+  font-size: @fs-base;
+  color: @ink;
 }
 
 /* placeholderClass 必须是全局类名，不能写成后代选择器，否则小程序端不生效 */
 .app-searchbar-placeholder {
-  font-size: 14px;
-  color: #9aa0ae;
+  font-size: @fs-base;
+  color: @ink-faint;
 }
 
 .app-searchbar-clear {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  margin-left: 6px;
-  border-radius: 9px;
-  background: #d7dae3;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.app-searchbar-clear-text {
-  font-size: 10px;
-  line-height: 1;
-  color: #ffffff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: @fill;
+  margin-left: @sp-2;
 }

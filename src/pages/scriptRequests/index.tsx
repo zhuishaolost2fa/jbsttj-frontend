@@ -20,6 +20,7 @@ import {
 import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
 import { usePageMeta } from "../../hooks/usePageMeta";
+import AppIcon from "../../components/AppIcon";
 import "./index.less";
 
 /** 状态徽章的视觉与文案 */
@@ -150,7 +151,7 @@ function ScriptRequestsPage() {
       title: "取消求解析",
       content: `确定取消对「${item.scriptTitle}」的求解析吗？之后可再次发起。`,
       confirmText: "取消求解析",
-      confirmColor: "#e54d42",
+      confirmColor: "#C0392B",
       cancelText: "再想想",
       success: async (res) => {
         if (!res.confirm) return;
@@ -200,7 +201,9 @@ function ScriptRequestsPage() {
     return (
       <View className="rq-page">
         <View className="empty-block">
-          <Text className="empty-emoji">🔒</Text>
+          <View className="empty-icon">
+            <AppIcon name="lock" tone="mute" size={30} />
+          </View>
           <Text className="empty-title">登录后查看你的求解析</Text>
           <Text className="empty-desc">发起的解析诉求都挂在你的账号下</Text>
           <View className="empty-btn" onClick={() => goLogin()}>
@@ -239,7 +242,9 @@ function ScriptRequestsPage() {
         <View className="page-tip">加载中…</View>
       ) : items.length === 0 && !errorMsg ? (
         <View className="empty-block">
-          <Text className="empty-emoji">📝</Text>
+          <View className="empty-icon">
+            <AppIcon name="inbox" tone="mute" size={30} />
+          </View>
           <Text className="empty-title">
             {filter === "pending"
               ? "没有待解析的诉求"

@@ -23,6 +23,7 @@ import { formatBytes } from '../../utils/format'
 import { MAX_FILE_SIZE, SIMPLE_UPLOAD_MAX_SIZE } from '../../constants/upload'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { replayActiveTabIcon } from '../../utils/replayActiveTabIcon'
+import AppIcon from '../../components/AppIcon'
 import './index.less'
 
 const GENDER_LABEL: Record<string, string> = {
@@ -52,7 +53,7 @@ function ProfilePage() {
       title: '退出登录',
       content: '确定要退出当前账号吗？',
       confirmText: '退出',
-      confirmColor: '#e54d42',
+      confirmColor: '#C0392B',
     }).then((res) => {
       if (res.confirm) {
         logout()
@@ -151,7 +152,8 @@ function ProfilePage() {
       {/* ===== 导入 DM 手册（从首页迁入） ===== */}
       <View className='import-card'>
         <View className='import-card-head'>
-          <Text className='import-card-title'>📥 导入 DM 手册</Text>
+          <AppIcon name='upload' tone='yellow' size={18} />
+          <Text className='import-card-title'>导入 DM 手册</Text>
           <Text className='import-card-sub'>贡献剧本，参与收益分成</Text>
         </View>
 
@@ -204,7 +206,7 @@ function ProfilePage() {
           <ImportDmGuide onSuccess={handleImportSuccess} />
         ) : (
           <AppButton block type='primary' size='large' onClick={() => goLogin()}>
-            📄 导入 DM 指南
+            导入 DM 指南
           </AppButton>
         )}
       </View>
@@ -216,17 +218,17 @@ function ProfilePage() {
             className='menu-item'
             onClick={() => Taro.navigateTo({ url: '/pages/profile/edit/index' })}
           >
-            <Text className='menu-icon'>📝</Text>
+            <AppIcon name='pencil' tone='ink' size={18} className='menu-icon' />
             <Text className='menu-label'>编辑资料</Text>
-            <Text className='menu-arrow'>&#x203A;</Text>
+            <AppIcon name='chevron-right' tone='mute' size={16} className='menu-arrow' />
           </View>
           <View
             className='menu-item'
             onClick={() => Taro.navigateTo({ url: '/pages/profile/security/index' })}
           >
-            <Text className='menu-icon'>🔐</Text>
+            <AppIcon name='shield' tone='ink' size={18} className='menu-icon' />
             <Text className='menu-label'>账号与安全</Text>
-            <Text className='menu-arrow'>&#x203A;</Text>
+            <AppIcon name='chevron-right' tone='mute' size={16} className='menu-arrow' />
           </View>
         </View>
       ) : null}
@@ -237,17 +239,17 @@ function ProfilePage() {
           className='menu-item'
           onClick={() => Taro.navigateTo({ url: '/pages/myScripts/index' })}
         >
-          <Text className='menu-icon'>📚</Text>
+          <AppIcon name='book' tone='ink' size={18} className='menu-icon' />
           <Text className='menu-label'>我的剧本</Text>
-          <Text className='menu-arrow'>&#x203A;</Text>
+          <AppIcon name='chevron-right' tone='mute' size={16} className='menu-arrow' />
         </View>
         <View
           className='menu-item'
           onClick={() => Taro.navigateTo({ url: '/pages/scriptRequests/index' })}
         >
-          <Text className='menu-icon'>🙋</Text>
+          <AppIcon name='help-circle' tone='ink' size={18} className='menu-icon' />
           <Text className='menu-label'>求解析</Text>
-          <Text className='menu-arrow'>&#x203A;</Text>
+          <AppIcon name='chevron-right' tone='mute' size={16} className='menu-arrow' />
         </View>
       </View>
 
@@ -275,19 +277,25 @@ function ProfilePage() {
             })
           }
         >
-          <Text className='menu-icon'>ℹ️</Text>
+          <AppIcon name='info' tone='ink' size={18} className='menu-icon' />
           <Text className='menu-label'>关于</Text>
-          <Text className='menu-arrow'>&#x203A;</Text>
+          <AppIcon name='chevron-right' tone='mute' size={16} className='menu-arrow' />
         </View>
       </View>
 
       {isAuthenticated ? (
-        <View className='logout-btn' onClick={handleLogout}>
+        <View
+          className='logout-btn'
+          onClick={handleLogout}
+          ariaRole='button'
+          ariaLabel='退出登录'
+        >
+          <AppIcon name='log-out' tone='danger' size={16} />
           <Text className='logout-text'>退出登录</Text>
         </View>
       ) : null}
 
-      <Text className='foot-hint'>⚠️ 复盘含剧透，未玩过的本请勿查看</Text>
+      <Text className='foot-hint'>复盘含剧透，未玩过的本请勿查看</Text>
     </View>
   )
 }

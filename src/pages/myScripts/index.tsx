@@ -30,6 +30,7 @@ import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
 import { usePolling } from "../../hooks/usePolling";
 import { usePageMeta } from "../../hooks/usePageMeta";
+import AppIcon from "../../components/AppIcon";
 import "./index.less";
 
 /** 状态徽章的视觉分组 */
@@ -168,7 +169,7 @@ function MyScriptsPage() {
         s.title || "未命名剧本"
       }」吗？删除后无法恢复，关联的 DM 手册索引也会一起清除。`,
       confirmText: "删除",
-      confirmColor: "#e54d42",
+      confirmColor: "#C0392B",
       cancelText: "取消",
       success: async (res) => {
         if (!res.confirm) return;
@@ -206,7 +207,9 @@ function MyScriptsPage() {
     return (
       <View className="scripts-page">
         <View className="empty-block">
-          <Text className="empty-emoji">🔒</Text>
+          <View className="empty-icon">
+            <AppIcon name="lock" tone="mute" size={30} />
+          </View>
           <Text className="empty-title">登录后查看我导入的剧本</Text>
           <Text className="empty-desc">剧本与解析进度都挂在你的账号下</Text>
           <View className="empty-btn" onClick={() => goLogin()}>
@@ -234,7 +237,9 @@ function MyScriptsPage() {
 
       {!loading && !scripts.length && !errorMsg ? (
         <View className="empty-block">
-          <Text className="empty-emoji">📥</Text>
+          <View className="empty-icon">
+            <AppIcon name="inbox" tone="mute" size={30} />
+          </View>
           <Text className="empty-title">还没有导入过剧本</Text>
           <Text className="empty-desc">导入 DM 手册后，这里会显示解析进度</Text>
           {/**
@@ -342,9 +347,9 @@ function MyScriptsPage() {
                   handleDelete(s);
                 }}
               >
-                <Text className="card-del-icon">🗑</Text>
+                <AppIcon name="trash-2" tone="danger" size={15} />
               </View>
-              <Text className="card-arrow">&#x203A;</Text>
+              <AppIcon name="chevron-right" tone="mute" size={16} className="card-arrow" />
             </View>
           );
         })}

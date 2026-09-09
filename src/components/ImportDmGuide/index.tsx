@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import AppButton from '../AppButton'
+import AppIcon from '../AppIcon'
 import {
   multipartUploadToOss,
   UploadAbortError,
@@ -277,8 +278,15 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
 
   return (
     <View className='import-dm-guide'>
-      <AppButton block type='primary' size='large' disabled={isBusy} onClick={handleImport}>
-        {isBusy ? '导入中…' : '📄 导入 DM 指南'}
+      <AppButton
+        block
+        type='primary'
+        size='large'
+        disabled={isBusy}
+        onClick={handleImport}
+        icon='upload'
+      >
+        {isBusy ? '导入中…' : '导入 DM 指南'}
       </AppButton>
 
       {panelVisible && (
@@ -305,11 +313,11 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
                     )}
                     <View className={`dm-step-node is-${status}`}>
                       {status === 'done' ? (
-                        <Text className='dm-step-mark'>✓</Text>
+                        <AppIcon name='check' tone='ink' size={12} />
                       ) : status === 'error' ? (
-                        <Text className='dm-step-mark'>!</Text>
+                        <AppIcon name='x' tone='white' size={12} />
                       ) : status === 'canceled' ? (
-                        <Text className='dm-step-mark'>×</Text>
+                        <AppIcon name='x' tone='mute' size={12} />
                       ) : (
                         <Text className='dm-step-mark'>{i + 1}</Text>
                       )}
@@ -322,7 +330,7 @@ function ImportDmGuide({ onSuccess }: ImportDmGuideProps) {
 
             <Text className='dm-upload-title'>
               {stage === 'done'
-                ? '🎉 导入成功'
+                ? '导入成功'
                 : stage === 'error'
                   ? '导入失败'
                   : stage === 'canceled'

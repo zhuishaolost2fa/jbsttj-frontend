@@ -1,20 +1,22 @@
+@import '../../styles/tokens.less';
 .login-page {
   min-height: 100vh;
-  background: #f7f8fc;
+  background: @canvas;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: @sp-6;
   box-sizing: border-box;
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  padding: 32px 24px 28px;
+  background: @paper;
+  border-radius: @r-lg;
+  border: 1px solid @line;
+  box-shadow: @shadow-md;
+  padding: @sp-8 @sp-6 @sp-6;
   box-sizing: border-box;
 }
 
@@ -23,26 +25,40 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: @sp-6;
 }
 
-.login-brand-emoji {
-  font-size: 36px;
+/* 品牌标记：墨底方块 + 品牌黄单字，替代原 emoji */
+.login-brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: @r-sm;
+  background: @ink;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: @sp-4;
+}
+
+.login-brand-mark-text {
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1;
-  margin-bottom: 10px;
+  color: @accent;
+  letter-spacing: 2px;
 }
 
 .login-brand-title {
   font-size: 19px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: @ink;
   letter-spacing: 1px;
 }
 
 .login-brand-sub {
   margin-top: 6px;
   font-size: 12px;
-  color: #999;
+  color: @ink-faint;
   text-align: center;
   line-height: 1.5;
 }
@@ -50,7 +66,7 @@
 /* ===== 登录/注册切换 ===== */
 .login-tabs {
   display: flex;
-  background: #f1f3f8;
+  background: @fill;
   border-radius: 10px;
   padding: 4px;
   margin-bottom: 22px;
@@ -61,17 +77,17 @@
   text-align: center;
   font-size: 14px;
   font-weight: 500;
-  color: #7a7f8c;
+  color: @ink-mute;
   padding: 9px 0;
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
 .login-tab.is-active {
-  background: #ffffff;
-  color: #1a1a2e;
+  background: @paper;
+  color: @ink;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(@ink, 0.06);
 }
 
 /* ===== 表单 ===== */
@@ -87,7 +103,7 @@
 .field-label {
   display: block;
   font-size: 13px;
-  color: #5a5f6e;
+  color: @ink-mute;
   margin-bottom: 7px;
   font-weight: 500;
 }
@@ -102,12 +118,12 @@
   width: 100%;
   height: 44px;
   line-height: 44px;
-  background: #f7f8fc;
-  border: 1px solid #e6e9f0;
+  background: @fill;
+  border: 1px solid @line;
   border-radius: 10px;
   padding: 0 14px;
   font-size: 14px;
-  color: #1a1a2e;
+  color: @ink;
   box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
@@ -117,12 +133,12 @@
 }
 
 .field-input:focus {
-  border-color: #5b7cfa;
-  background: #ffffff;
+  border-color: @ink;
+  background: @paper;
 }
 
 .field-placeholder {
-  color: #b6bac6;
+  color: @ink-faint;
   font-size: 14px;
 }
 
@@ -130,47 +146,35 @@
   position: absolute;
   right: 14px;
   font-size: 13px;
-  color: #5b7cfa;
+  color: @ink;
   padding: 4px;
 }
 
 /* ===== 提示条 ===== */
+/* 提示条：靠左侧 3px 色条区分语义，不用图标 */
 .form-alert {
   display: flex;
   align-items: flex-start;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
+  border-radius: @r-sm;
+  padding: @sp-3;
+  margin-bottom: @sp-4;
+  border-left: 3px solid @line;
 }
 
 .form-alert.is-error {
-  background: #fff5f5;
+  background: @danger-soft;
+  border-left-color: @danger;
 }
 
 .form-alert.is-notice {
-  background: #f0f7ff;
+  background: @accent-soft;
+  border-left-color: @accent;
 }
 
 .alert-icon {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-right: 8px;
-  margin-top: 1px;
-}
-
-.is-error .alert-icon {
-  background: #e54d42;
-}
-
-.is-notice .alert-icon {
-  background: #5b7cfa;
+  margin-right: @sp-2;
+  margin-top: 2px;
 }
 
 .alert-text {
@@ -180,24 +184,23 @@
 }
 
 .is-error .alert-text {
-  color: #e54d42;
+  color: @danger;
 }
 
 .is-notice .alert-text {
-  color: #3a63d8;
+  color: @ink-soft;
 }
 
 /* ===== 提交按钮 ===== */
 .submit-btn {
-  height: 46px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
+  height: 48px;
+  border-radius: @r-sm;
+  background: @accent;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 6px;
-  box-shadow: 0 6px 16px rgba(91, 124, 250, 0.28);
-  transition: opacity 0.2s ease;
+  margin-top: @sp-2;
+  transition: background 0.16s ease;
 }
 
 .submit-btn:active {
@@ -211,7 +214,7 @@
 .submit-text {
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
+  color: @paper;
   letter-spacing: 1px;
 }
 
@@ -225,26 +228,26 @@
 
 .switch-tip {
   font-size: 13px;
-  color: #999;
+  color: @ink-faint;
 }
 
 .switch-link {
   font-size: 13px;
-  color: #5b7cfa;
+  color: @ink;
   font-weight: 600;
   margin-left: 4px;
 }
 
 /* ===== 微信一键登录 ===== */
+/* 微信登录：墨底白字，与「提交」的黄底拉开层级（微信绿不在品牌色板内） */
 .wx-btn {
-  height: 46px;
-  border-radius: 10px;
-  background: #07c160;
+  height: 48px;
+  border-radius: @r-sm;
+  background: @ink;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 6px;
-  box-shadow: 0 6px 16px rgba(7, 193, 96, 0.26);
+  margin-top: @sp-2;
   transition: opacity 0.2s ease;
 }
 
@@ -259,7 +262,7 @@
 .wx-btn-text {
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
+  color: @paper;
   letter-spacing: 1px;
 }
 

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, Textarea } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import Avatar from "../Avatar";
+import AppIcon from "../AppIcon";
 import {
   fetchDmQuestions,
   answerDmQuestion,
@@ -405,8 +406,13 @@ export default function QuestionPanel({
           <Text className="q-panel-sub">
             {fetched ? `共 ${total} 条` : scriptTitle || ""}
           </Text>
-          <View className="q-panel-close" onClick={onClose}>
-            <Text className="q-panel-close-text">✕</Text>
+          <View
+            className="q-panel-close"
+            onClick={onClose}
+            ariaRole="button"
+            ariaLabel="关闭"
+          >
+            <AppIcon name="x" tone="mute" size={15} />
           </View>
         </View>
 
@@ -428,7 +434,9 @@ export default function QuestionPanel({
           {!isAuthenticated ? (
             /* 未登录：接口需鉴权，不发请求，直接展示登录引导 */
             <View className="q-panel-tip">
-              <Text className="q-panel-tip-emoji">🔐</Text>
+              <View className="q-panel-tip-icon">
+                <AppIcon name="lock" tone="mute" size={26} />
+              </View>
               <Text className="q-panel-tip-text">登录后查看用户提问</Text>
               <Text className="q-panel-tip-desc">
                 登录后可以查看大家的问题，还能解答别人的疑惑
@@ -469,7 +477,9 @@ export default function QuestionPanel({
             </View>
           ) : (
             <View className="q-panel-tip">
-              <Text className="q-panel-tip-emoji">📝</Text>
+              <View className="q-panel-tip-icon">
+                <AppIcon name="inbox" tone="mute" size={26} />
+              </View>
               <Text className="q-panel-tip-text">
                 {statusFilter === "pending"
                   ? "暂无待解答问题"

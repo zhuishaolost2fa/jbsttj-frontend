@@ -13,6 +13,7 @@ import {
 import { ApiError } from "../../services/request";
 import type { UploadResult } from "../../utils/ossMultipartUpload";
 import "./index.less";
+import AppIcon from "../AppIcon";
 
 /**
  * 从 DM 指南文件名推导出候选剧本名。
@@ -301,16 +302,21 @@ function ScriptSubmitForm({
           <Text className="sf-title">
             {hasCandidates ? "确认 / 完善剧本信息" : "补全剧本信息"}
           </Text>
-          <Text className="sf-close" onClick={onClose}>
-            ✕
-          </Text>
+          <View
+            className="sf-close"
+            onClick={onClose}
+            ariaRole="button"
+            ariaLabel="关闭"
+          >
+            <AppIcon name="x" tone="mute" size={15} />
+          </View>
         </View>
 
         {/* 主体 */}
         <View className="sf-body">
           {/* 已上传文件提示 */}
           <View className="sf-file">
-            <Text className="sf-file-icon">📄</Text>
+            <AppIcon name="file-text" tone="ink" size={18} />
             <Text className="sf-file-name">{file.fileName}</Text>
             <Text className="sf-file-tag">已上传</Text>
           </View>

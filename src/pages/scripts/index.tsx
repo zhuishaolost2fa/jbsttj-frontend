@@ -29,6 +29,7 @@ import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { replayActiveTabIcon } from "../../utils/replayActiveTabIcon";
+import AppIcon from "../../components/AppIcon";
 import "./index.less";
 
 function ScriptLibraryPage() {
@@ -314,7 +315,9 @@ function ScriptLibraryPage() {
       {/* ===== 搜索无结果：请求解析 CTA ===== */}
       {isSearchEmpty ? (
         <View className="request-cta">
-          <Text className="request-cta-emoji">🔍</Text>
+          <View className="request-cta-icon">
+            <AppIcon name="search" tone="mute" size={28} />
+          </View>
           <Text className="request-cta-title">没有找到《{kw}》的解析</Text>
           <Text className="request-cta-desc">
             还没人导入该剧本的 DM 主持人手册，发起解析请求后即可在此查看
@@ -335,7 +338,9 @@ function ScriptLibraryPage() {
         <View className="lib-tip">加载中…</View>
       ) : scripts.length === 0 && !errorMsg ? (
         <View className="lib-empty">
-          <Text className="lib-empty-emoji">📖</Text>
+          <View className="lib-empty-icon">
+            <AppIcon name="book" tone="mute" size={30} />
+          </View>
           <Text className="lib-empty-title">暂无已解析剧本</Text>
           <Text className="lib-empty-desc">
             导入 DM 指南并完成解析后，会展示在这里
@@ -399,8 +404,9 @@ function ScriptLibraryPage() {
                 {/* 评分 */}
                 {s.rating != null && s.rating > 0 ? (
                   <View className="lib-card-rating">
+                    <AppIcon name="star" tone="yellow" size={13} className="lib-rating-star" />
                     <Text className="lib-rating-text">
-                      ★ {s.rating.toFixed(1)}
+                      {s.rating.toFixed(1)}
                     </Text>
                     {s.ratingCount ? (
                       <Text className="lib-rating-count">
@@ -411,7 +417,7 @@ function ScriptLibraryPage() {
                 ) : null}
               </View>
 
-              <Text className="lib-card-arrow">&#x203A;</Text>
+              <AppIcon name="chevron-right" tone="mute" size={16} className="lib-card-arrow" />
             </View>
           ))}
 
@@ -428,8 +434,8 @@ function ScriptLibraryPage() {
         </View>
       ))}
       {/* ===== 悬浮按钮：求解析榜单 ===== */}
-      <View className="board-fab" onClick={openLeaderboard}>
-        <Text className="board-fab-icon">🏆</Text>
+      <View className="board-fab" onClick={openLeaderboard} ariaRole="button" ariaLabel="求解析榜单">
+        <AppIcon name="trophy" tone="yellow" size={17} />
         <Text className="board-fab-text">求解析榜</Text>
       </View>
 
@@ -449,8 +455,13 @@ function ScriptLibraryPage() {
                   大家最想解析的剧本，越多越靠前
                 </Text>
               </View>
-              <View className="board-close" onClick={closeLeaderboard}>
-                <Text className="board-close-text">✕</Text>
+              <View
+                className="board-close"
+                onClick={closeLeaderboard}
+                ariaRole="button"
+                ariaLabel="关闭"
+              >
+                <AppIcon name="x" tone="mute" size={15} />
               </View>
             </View>
 
@@ -466,7 +477,9 @@ function ScriptLibraryPage() {
                 </View>
               ) : boardItems.length === 0 ? (
                 <View className="board-empty">
-                  <Text className="board-empty-emoji">🗳️</Text>
+                  <View className="board-empty-icon">
+                    <AppIcon name="inbox" tone="mute" size={28} />
+                  </View>
                   <Text className="board-empty-title">还没有求解析诉求</Text>
                   <Text className="board-empty-desc">
                     搜索不到心仪的剧本时，点「求解析」即可上榜

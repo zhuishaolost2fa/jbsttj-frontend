@@ -18,15 +18,16 @@ export default defineAppConfig({
   // src/pages/index/ 目录已于 2026-09-02 删除（git 可回溯）。
   //
   // 导入 DM 手册在「我的」页面；「我的剧本」不再独占 tab，收纳到「我的」页入口下。
-  // tabBar 图标为本地 PNG（81x81，<40KB），存放在 src/assets/tabbar/。
-  // 如需换成 iconfont.cn 的图标：下载对应图标的 81x81 PNG（或 SVG 转 PNG），
-  // 覆盖 src/assets/tabbar/ 下同名文件（灰=未选中，-active=选中色 #5b7cfa）即可，无需改代码。
+  //
+  // ⚠️ tabBar 图标为本地 PNG（81x81，<40KB，由 scripts/gen-icons.mjs 生成，
+  // 图标源 scripts/icon-src/book.svg、user.svg，lucide 线性风格）。
+  // 底色为墨色，未选中灰 #7A7A7A、选中品牌黄 #FFD342，与三色配色统一。
   tabBar: {
     position: "bottom",
-    color: "#9aa0ae",
-    selectedColor: "#5b7cfa",
-    backgroundColor: "#ffffff",
-    borderStyle: "white",
+    color: "#8C8C8C",
+    selectedColor: "#FFD342",
+    backgroundColor: "#181818",
+    borderStyle: "black",
     list: [
       {
         pagePath: "pages/scripts/index",
@@ -44,8 +45,9 @@ export default defineAppConfig({
   },
   window: {
     backgroundTextStyle: "light",
-    navigationBarBackgroundColor: "#fff",
+    navigationBarBackgroundColor: "#181818",
     navigationBarTitleText: "剧本杀复盘助手",
-    navigationBarTextStyle: "black",
+    navigationBarTextStyle: "white",
+    backgroundColor: "#F7F7F7",
   },
 });

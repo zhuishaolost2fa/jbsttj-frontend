@@ -1029,13 +1029,14 @@ export function fetchSynthesis(
 export const SYNTHESIS_SECTIONS: Array<{
   key: 'synopsis' | 'trick' | 'timeline' | 'roles' | 'ending'
   title: string
-  emoji: string
+  /** 章节图标（AppIcon 名称），代替原来的 emoji / 序号 */
+  icon: 'book-open' | 'sparkles' | 'clock' | 'users' | 'flag'
   /** 用于样式 tone 区分（less 中 section-card 子类名） */
   tone: string
 }> = [
-  { key: 'synopsis', title: '剧本梗概',   emoji: '📖', tone: 'is-synopsis' },
-  { key: 'trick',    title: '核心诡计',   emoji: '🎭', tone: 'is-trick'    },
-  { key: 'timeline', title: '完整时间线', emoji: '⏳', tone: 'is-timeline' },
-  { key: 'roles',    title: '角色命运',   emoji: '👥', tone: 'is-roles'    },
-  { key: 'ending',   title: '结局收束',   emoji: '🏁', tone: 'is-ending'   },
+  { key: 'synopsis', title: '剧本梗概',   icon: 'book-open', tone: 'is-synopsis' },
+  { key: 'trick',    title: '核心诡计',   icon: 'sparkles',  tone: 'is-trick'    },
+  { key: 'timeline', title: '完整时间线', icon: 'clock',     tone: 'is-timeline' },
+  { key: 'roles',    title: '角色命运',   icon: 'users',     tone: 'is-roles'    },
+  { key: 'ending',   title: '结局收束',   icon: 'flag',      tone: 'is-ending'   },
 ]

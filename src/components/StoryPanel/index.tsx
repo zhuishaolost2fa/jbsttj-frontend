@@ -44,6 +44,7 @@ import {
 } from "../../services/dmGuide";
 import { ApiError } from "../../services/request";
 import { goLogin, useAuth } from "../../store/auth";
+import AppIcon from "../AppIcon";
 import "./index.less";
 
 /** H5 才有页面级文本选择，小程序端不挂划线入口 */
@@ -87,6 +88,17 @@ function formatTime(iso?: string | null): string {
   const day = Math.floor(hr / 24);
   if (day < 30) return `${day} 天前`;
   return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+/**
+ * overview 是否真有内容：5 节里任意一节有非空文本即算数。
+ *
+ * 后端「任务没跑通却标 ready」时会返回 5 节全空字符串的空壳 overview
+ * （`documentId:null`），此时必须按「没有合成」处理，否则前端会渲染一篇空文章。
+ */
+function hasOverviewContent(overview?: SynthesisResult["overview"] | null): boolean {
+  if (!overview) return false;
+  return SYNTHESIS_SECTIONS.some((sec) => (overview[sec.key] || "").trim().length > 0);
 }
 
 interface StoryPanelProps {
@@ -622,7 +634,7 @@ export default function StoryPanel({
       title: "删除划线",
       content: "删除后这条划线不再展示（可在后台恢复）",
       confirmText: "删除",
-      confirmColor: "#e54d42",
+      confirmColor: "#C0392B",
       success: async (res) => {
         if (!res.confirm) return;
         try {
@@ -716,11 +728,17 @@ export default function StoryPanel({
     Array.isArray(activeStory?.meta?.events) ? activeStory.meta.events : [];
 
   /**
-   * 「合成文章」是否可用：status=ready 且 overview 非空。
-   * 决定主视图模式：有合成 → 默认展示文章 + 折叠抽屉；无合成 → 直接展示原列表（降级）。
+   * 「合成文章」是否可用：status=ready 且 overview 至少有一节非空。
+   * 决定主视图模式：有合成 → 默认展示文章 + 折叠抽屉；无合成 → 降级到碎片列表。
+   *
+   * ⚠️ 不能只判 `!!overview`：后端存在「任务没跑通却标 ready」的脏数据
+   * （实测多个剧本返回 `synthesisStatus:"ready"` + `documentId:null` +
+   * 5 节全空字符串 + 空 anchorStories）。只判对象存在会把空壳当成有效合成，
+   * 渲染出一篇「什么都没有的文章」+ 一个孤零零的「展开 0 张碎片」按钮。
    */
   const hasSynthesis =
-    synthesis?.synthesisStatus === "ready" && !!synthesis?.overview;
+    synthesis?.synthesisStatus === "ready" &&
+    hasOverviewContent(synthesis.overview);
 
   /** 合成文章的 5 节渲染（按 SYNTHESIS_SECTIONS 顺序，跳过空节） */
   const renderSynthesisSection = (
@@ -734,7 +752,7 @@ export default function StoryPanel({
     return (
       <View key={sec.key} className={`synthesis-section ${sec.tone}`}>
         <View className="synthesis-section-head">
-          <Text className="synthesis-section-emoji">{sec.emoji}</Text>
+          <AppIcon name={sec.icon} tone="ink" size={16} className="synthesis-section-icon" />
           <Text className="synthesis-section-title">{sec.title}</Text>
         </View>
         <View className="synthesis-section-body">
@@ -757,20 +775,23 @@ export default function StoryPanel({
   /** 抽屉里的故事卡片列表（chips + cards），与原列表渲染共用一份代码 */
   const renderDetailsList = () => (
     <>
-      {/* chips */}
-      <ScrollView className="story-chips" scrollX>
-        {TYPE_CHIPS.map((chip) => (
-          <View
-            key={chip.label}
-            className={`story-chip ${
-              typeFilter === chip.value ? "is-active" : ""
-            }`}
-            onClick={() => handleChipChange(chip.value)}
-          >
-            <Text className="story-chip-text">{chip.label}</Text>
-          </View>
-        ))}
-      </ScrollView>
+      {/* chips：一本碎片都没有时不渲染 —— 一排点不出东西的筛选器
+          看起来就像渲染错乱，直接留空状态提示更清楚 */}
+      {items.length ? (
+        <ScrollView className="story-chips" scrollX>
+          {TYPE_CHIPS.map((chip) => (
+            <View
+              key={chip.label}
+              className={`story-chip ${
+                typeFilter === chip.value ? "is-active" : ""
+              }`}
+              onClick={() => handleChipChange(chip.value)}
+            >
+              <Text className="story-chip-text">{chip.label}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
 
       {/* 列表 */}
       <ScrollView className="story-list" scrollY>
@@ -819,7 +840,9 @@ export default function StoryPanel({
           </View>
         ) : (
           <View className="story-tip">
-            <Text className="story-tip-emoji">📖</Text>
+            <View className="story-tip-icon">
+              <AppIcon name="book" tone="mute" size={26} />
+            </View>
             <Text className="story-tip-text">
               {typeFilter
                 ? `暂无${STORY_TYPE_TEXT[typeFilter] || "该类型"}条目`
@@ -877,20 +900,28 @@ export default function StoryPanel({
             </View>
           </ScrollView>
         </View>
-      ) : synthesisFetched && synthesisError && !synthesis ? (
-        /* 合成拉取失败 + 已 fetch 完毕：给一个温和提示，仍走降级列表 */
+      ) : !synthesisFetched ? (
+        /* 合成结果还没回来：先占位。旧实现这里会直接把 chips + 列表顶上去，
+         * 用户切进 tab 先看到一排「tab 标签」再被文章替换，观感像渲染错乱。 */
         <View className="story-panel-main">
           <View className="synthesis-loading">
             <Text className="synthesis-loading-text">
-              合成文章暂不可用，展示原始故事卡片
+              正在整理故事还原…
             </Text>
-          </View>
-          <View className="story-panel-main story-panel-main--legacy">
-            {renderDetailsList()}
           </View>
         </View>
       ) : (
+        /* 确认没有合成（未生成 / 生成失败 / 空壳 overview）→ 降级到碎片列表 */
         <View className="story-panel-main story-panel-main--legacy">
+          {items.length ? (
+            <View className="story-legacy-tip">
+              <Text className="story-legacy-tip-text">
+                {synthesisError
+                  ? "合成文章暂不可用，下面是原始故事碎片"
+                  : "这本手册还没生成合成文章，下面是原始故事碎片"}
+              </Text>
+            </View>
+          ) : null}
           {renderDetailsList()}
         </View>
       )}
@@ -910,8 +941,10 @@ export default function StoryPanel({
               <View
                 className="story-details-close"
                 onClick={toggleDetails}
+                ariaRole="button"
+                ariaLabel="关闭"
               >
-                <Text className="story-details-close-text">关闭</Text>
+                <AppIcon name="x" tone="ink" size={13} />
               </View>
             </View>
             {anchorSection ? (
@@ -1080,7 +1113,7 @@ export default function StoryPanel({
               {pendingSel ? (
                 <View className="story-mark-btn" onClick={openCreateDialog}>
                   <Text className="story-mark-btn-text">
-                    ✏️ 划线评论 · 已选 {Array.from(pendingSel.quote).length} 字
+                    划线评论 · 已选 {Array.from(pendingSel.quote).length} 字
                   </Text>
                 </View>
               ) : (

@@ -1,6 +1,6 @@
 export default definePageConfig({
   navigationBarTitleText: '账号与安全',
-  navigationBarBackgroundColor: '#ffffff',
+  navigationBarBackgroundColor: '#FFFFFF',
   navigationBarTextStyle: 'black',
-  backgroundColor: '#f5f6fa',
+  backgroundColor: '#F5F5F5',
 })

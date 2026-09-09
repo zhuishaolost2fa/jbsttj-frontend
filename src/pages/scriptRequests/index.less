@@ -1,7 +1,9 @@
+@import '../../styles/tokens.less';
+
 .rq-page {
   min-height: 100vh;
-  background: #f7f8fc;
-  padding: 16px 16px 24px;
+  background: @canvas;
+  padding: @sp-4 @sp-4 @sp-6;
   box-sizing: border-box;
 }
 
@@ -10,108 +12,115 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: @sp-4;
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: @fs-xl;
   font-weight: 700;
-  color: #1f2330;
+  color: @ink;
+  letter-spacing: 0.5px;
 }
 
 .page-count {
-  font-size: 12px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @ink-faint;
 }
 
 .page-tip {
-  padding: 32px 0;
+  padding: @sp-8 0;
   text-align: center;
-  font-size: 13px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @ink-faint;
 }
 
 .page-tip-end {
-  padding: 20px 0 24px;
-  font-size: 12px;
+  padding: @sp-5 0 @sp-6;
+  font-size: @fs-sm;
 }
 
 .page-error {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  background: rgba(229, 77, 66, 0.08);
-  color: #e54d42;
-  font-size: 13px;
+  padding: @sp-3;
+  margin-bottom: @sp-3;
+  border-radius: @r-sm;
+  border-left: 3px solid @danger;
+  background: @danger-soft;
+  color: @danger;
+  font-size: @fs-sm;
 }
 
 /* ===== 筛选条 ===== */
 .filter-bar {
   display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: @sp-2;
+  margin-bottom: @sp-4;
 }
 
 .filter-chip {
-  padding: 6px 16px;
-  border-radius: 16px;
-  background: #ffffff;
-  border: 1px solid #eceef3;
-  transition: all 0.15s ease;
+  padding: @sp-2 @sp-4;
+  border-radius: @r-pill;
+  background: @paper;
+  border: 1px solid @line;
+  transition: background 0.15s ease, border-color 0.15s ease;
 
   &.is-active {
-    background: rgba(91, 124, 250, 0.1);
-    border-color: rgba(91, 124, 250, 0.4);
+    background: @accent;
+    border-color: @accent;
   }
 }
 
 .filter-chip-text {
-  font-size: 13px;
-  color: #6b7080;
+  font-size: @fs-sm;
+  color: @ink-mute;
 }
 
 .filter-chip.is-active .filter-chip-text {
-  color: #5b7cfa;
+  color: @ink;
   font-weight: 600;
 }
 
 /* ===== 空状态 ===== */
 .empty-block {
-  padding: 64px 24px;
+  padding: @sp-12 @sp-6;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.empty-emoji {
-  font-size: 40px;
-  line-height: 1;
-  margin-bottom: 14px;
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: @fill;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: @sp-4;
 }
 
 .empty-title {
-  font-size: 15px;
+  font-size: @fs-md;
   font-weight: 600;
-  color: #3d4252;
-  margin-bottom: 6px;
+  color: @ink;
+  margin-bottom: @sp-2;
 }
 
 .empty-desc {
-  font-size: 12px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @ink-faint;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: @sp-5;
 }
 
 .empty-btn {
-  padding: 9px 26px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  padding: @sp-3 @sp-6;
+  border-radius: @r-sm;
+  background: @accent;
 }
 
 .empty-btn-text {
-  font-size: 14px;
-  color: #ffffff;
+  font-size: @fs-base;
+  color: @ink;
   font-weight: 600;
 }
 
@@ -123,11 +132,11 @@
 .rq-card {
   display: flex;
   align-items: center;
-  padding: 14px;
-  margin-bottom: 10px;
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+  padding: @sp-4;
+  margin-bottom: @sp-3;
+  background: @paper;
+  border: 1px solid @line;
+  border-radius: @r-md;
 }
 
 .rq-card.is-clickable {
@@ -139,21 +148,21 @@
 }
 
 .card-cover {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  border-radius: @r-sm;
+  background: @ink;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: @sp-3;
 }
 
 .cover-text {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: @accent;
 }
 
 .card-body {
@@ -165,13 +174,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: @sp-2;
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: @fs-md;
   font-weight: 600;
-  color: #1f2330;
+  color: @ink;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -180,32 +189,34 @@
 }
 
 .card-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: @fs-xs;
+  padding: 2px @sp-2;
+  border-radius: @r-xs;
   flex-shrink: 0;
 }
 
+/* 进行中：黄底；已完成：墨底白字；已取消：灰底 */
 .card-badge.is-pending {
-  color: #5b7cfa;
-  background: rgba(91, 124, 250, 0.1);
+  color: @ink;
+  background: @accent;
+  font-weight: 600;
 }
 
 .card-badge.is-done {
-  color: #12a150;
-  background: rgba(18, 161, 80, 0.1);
+  color: @paper;
+  background: @ink;
 }
 
 .card-badge.is-cancelled {
-  color: #9aa0ae;
-  background: rgba(154, 160, 174, 0.12);
+  color: @ink-faint;
+  background: @fill-deep;
 }
 
 .card-reason {
   display: block;
-  margin-top: 5px;
-  font-size: 12px;
-  color: #6b7080;
+  margin-top: @sp-1;
+  font-size: @fs-sm;
+  color: @ink-mute;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -215,26 +226,26 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 5px;
-  gap: 4px 10px;
+  margin-top: @sp-1;
+  gap: @sp-1 @sp-3;
 }
 
 .meta-item {
-  font-size: 11px;
-  color: #9aa0ae;
+  font-size: @fs-xs;
+  color: @ink-faint;
 }
 
 .meta-item.is-link {
-  color: #5b7cfa;
+  color: @ink;
 }
 
 /* ===== 取消按钮 ===== */
 .card-cancel {
   flex-shrink: 0;
-  margin-left: 8px;
-  padding: 6px 14px;
-  border-radius: 14px;
-  background: rgba(229, 77, 66, 0.08);
+  margin-left: @sp-2;
+  padding: @sp-2 @sp-3;
+  border-radius: @r-xs;
+  background: @danger-soft;
   transition: opacity 0.15s ease;
 
   &:active {
@@ -243,19 +254,19 @@
 }
 
 .card-cancel-text {
-  font-size: 12px;
-  color: #e54d42;
-  font-weight: 500;
+  font-size: @fs-sm;
+  color: @danger;
+  font-weight: 600;
 }
 
 /* ===== 加载更多 ===== */
 .load-more-btn {
-  padding: 12px;
-  margin: 4px 0 16px;
-  background: #ffffff;
-  border-radius: 12px;
+  padding: @sp-3;
+  margin: @sp-1 0 @sp-4;
+  background: @paper;
+  border-radius: @r-sm;
   text-align: center;
-  border: 1px solid #eceef3;
+  border: 1px solid @line;
   transition: opacity 0.15s ease;
 
   &:active {
@@ -264,7 +275,7 @@
 }
 
 .load-more-text {
-  font-size: 14px;
-  color: #5b7cfa;
+  font-size: @fs-base;
+  color: @ink;
   font-weight: 500;
 }

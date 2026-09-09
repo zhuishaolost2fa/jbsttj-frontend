@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Text, View } from '@tarojs/components'
+import AppIcon, { type IconName, type IconTone } from '../AppIcon'
 import './index.less'
 
 interface AppButtonProps {
@@ -14,6 +15,10 @@ interface AppButtonProps {
   disabled?: boolean
   onClick?: () => void
   children?: ReactNode
+  /** 可选前置图标（AppIcon 名称） */
+  icon?: IconName
+  /** 图标色调，默认跟随文字色（黄底墨字 / 白底墨字均为 ink） */
+  iconTone?: IconTone
 }
 
 /**
@@ -37,6 +42,8 @@ function AppButton({
   disabled = false,
   onClick,
   children,
+  icon,
+  iconTone = 'ink',
 }: AppButtonProps) {
   const cls = [
     'app-btn',
@@ -59,6 +66,9 @@ function AppButton({
         onClick?.()
       }}
     >
+      {icon ? (
+        <AppIcon name={icon} tone={iconTone} size={16} className='app-btn-icon' />
+      ) : null}
       <Text className='app-btn-text'>{children}</Text>
     </View>
   )

@@ -1,14 +1,22 @@
-/* 跨端自绘按钮：View + Text，不依赖任何 UI 库（原因见 index.tsx 注释） */
+@import '../../styles/tokens.less';
+/* 跨端自绘按钮：View + Text，不依赖任何 UI 库（原因见 index.tsx 注释）
+ *
+ * 两种配色：
+ *   primary —— 品牌黄底 + 墨字，全站唯一的主 CTA 样式（每屏最多一个）
+ *   default —— 白底 + 细描边，次级操作
+ * 一律扁平：不用渐变、不用彩色投影，靠底色与描边建立层级。
+ */
 
 .app-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border-radius: 10px;
+  border-radius: @r-sm;
   border: 1px solid transparent;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
   user-select: none;
+  cursor: pointer;
 
   &.is-block {
     display: flex;
@@ -16,77 +24,102 @@
   }
 
   &.is-large {
-    height: 46px;
-    padding: 0 20px;
+    height: 48px;
+    padding: 0 @sp-5;
   }
 
   &.is-small {
-    height: 34px;
-    padding: 0 16px;
+    height: 36px;
+    padding: 0 @sp-4;
   }
 
   /* ===== 配色：primary ===== */
   &.is-primary {
-    background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
-    box-shadow: 0 6px 16px rgba(91, 124, 250, 0.28);
+    background: @accent;
+    border-color: @accent;
 
     &.is-outline {
       background: transparent;
-      border-color: rgba(91, 124, 250, 0.45);
-      box-shadow: none;
+      border-color: @ink;
     }
   }
 
   /* ===== 配色：default ===== */
   &.is-default {
-    background: #f4f5f8;
-    border-color: #e3e6ee;
+    background: @paper;
+    border-color: @line-strong;
 
     &.is-outline {
       background: transparent;
+      border-color: @line-strong;
     }
   }
 
   /* ===== 状态 ===== */
   &.is-disabled {
-    opacity: 0.55;
+    background: @fill;
+    border-color: @line;
   }
 
   /* 按下态：小程序走 hoverClass，H5 走 :active（wxss 会忽略 :active，无副作用） */
   &.is-pressed {
-    opacity: 0.85;
+    background: @accent-deep;
+    border-color: @accent-deep;
   }
 
   &:active {
-    opacity: 0.85;
+    background: @accent-deep;
+    border-color: @accent-deep;
   }
 
-  &.is-disabled:active {
-    opacity: 0.55;
+  &.is-default.is-pressed,
+  &.is-default:active {
+    background: @fill-deep;
   }
+
+  &.is-primary.is-outline.is-pressed,
+  &.is-primary.is-outline:active {
+    background: rgba(@ink, 0.06);
+  }
+
+  /* disabled 必须写在最后，覆盖上面的按下态 */
+  &.is-disabled.is-pressed,
+  &.is-disabled:active {
+    background: @fill;
+    border-color: @line;
+  }
+}
+
+.app-btn-icon {
+  margin-right: @sp-2;
 }
 
 .app-btn-text {
   font-weight: 600;
   line-height: 1;
+  letter-spacing: 0.3px;
 }
 
 .app-btn.is-large .app-btn-text {
-  font-size: 15px;
+  font-size: @fs-md;
 }
 
 .app-btn.is-small .app-btn-text {
-  font-size: 13px;
+  font-size: @fs-sm;
 }
 
 .app-btn.is-primary .app-btn-text {
-  color: #ffffff;
+  color: @ink;
 }
 
 .app-btn.is-primary.is-outline .app-btn-text {
-  color: #5b7cfa;
+  color: @ink;
 }
 
 .app-btn.is-default .app-btn-text {
-  color: #5a6072;
+  color: @ink;
+}
+
+.app-btn.is-disabled .app-btn-text {
+  color: @ink-faint;
 }

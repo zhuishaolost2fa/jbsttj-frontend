@@ -29,6 +29,7 @@ import {
   type ProfilePatch,
 } from '../../../services/auth'
 import { usePageMeta } from '../../../hooks/usePageMeta'
+import AppIcon from '../../../components/AppIcon'
 import './index.less'
 
 const NICKNAME_MAX = 30
@@ -380,7 +381,7 @@ export default function EditProfilePage() {
           <Picker mode='date' end={todayStr()} value={form.birthday} onChange={(e) => set('birthday', e.detail.value)}>
             <View className='picker-control'>
               <Text className={form.birthday ? '' : 'placeholder'}>{form.birthday || '选择生日'}</Text>
-              <Text className='picker-arrow'>&#x203A;</Text>
+              <AppIcon name='chevron-right' tone='mute' size={14} className='picker-arrow' />
             </View>
           </Picker>
         </View>
@@ -396,7 +397,7 @@ export default function EditProfilePage() {
           >
             <View className='picker-control'>
               <Text className={form.region ? '' : 'placeholder'}>{regionText}</Text>
-              <Text className='picker-arrow'>&#x203A;</Text>
+              <AppIcon name='chevron-right' tone='mute' size={14} className='picker-arrow' />
             </View>
           </Picker>
         </View>

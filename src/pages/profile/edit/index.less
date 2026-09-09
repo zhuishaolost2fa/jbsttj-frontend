@@ -1,7 +1,9 @@
+@import '../../../styles/tokens.less';
+
 .edit-page {
   min-height: 100vh;
-  background: #f5f6fa;
-  padding: 12px 0 calc(84px + env(safe-area-inset-bottom));
+  background: @canvas;
+  padding: @sp-3 0 calc(84px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -10,23 +12,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9aa0ae;
-  font-size: 14px;
-  background: #f5f6fa;
+  color: @ink-faint;
+  font-size: @fs-base;
+  background: @canvas;
 }
 
 .section {
-  background: #fff;
-  margin: 0 0 12px;
-  padding: 16px;
+  background: @paper;
+  margin: 0 0 @sp-3;
+  padding: @sp-4;
+  border-top: 1px solid @line;
+  border-bottom: 1px solid @line;
 }
 
 .section-title {
   display: block;
-  font-size: 13px;
+  font-size: @fs-sm;
   font-weight: 600;
-  color: #9aa0ae;
-  margin-bottom: 14px;
+  color: @ink-faint;
+  margin-bottom: @sp-4;
 }
 
 /* ===== 头像 ===== */
@@ -38,27 +42,27 @@
 .avatar-actions {
   flex: 1;
   min-width: 0;
-  margin-left: 16px;
+  margin-left: @sp-4;
 }
 
 .avatar-tip {
   display: block;
-  font-size: 12px;
-  color: #9aa0ae;
-  margin-bottom: 12px;
+  font-size: @fs-sm;
+  color: @ink-faint;
+  margin-bottom: @sp-3;
 }
 
 .avatar-upload {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px;
-  margin-bottom: 12px;
-  background: #07c160;
-  color: #fff;
-  font-size: 14px;
+  padding: @sp-2 @sp-4;
+  margin-bottom: @sp-3;
+  background: @accent;
+  color: @ink;
+  font-size: @fs-base;
   font-weight: 600;
-  border-radius: 18px;
+  border-radius: @r-sm;
   line-height: 1.2;
   transition: opacity 0.15s;
 
@@ -70,13 +74,13 @@
 .swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: @sp-3;
+  margin-bottom: @sp-4;
 }
 
 .swatch {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 2px solid transparent;
   box-sizing: border-box;
@@ -84,39 +88,41 @@
 }
 
 .swatch.is-active {
-  border-color: #1f2330;
+  border-color: @ink;
   transform: scale(1.12);
 }
 
 .url-input {
   display: flex;
   align-items: center;
-  background: #f5f6fa;
-  border-radius: 10px;
-  padding: 0 4px 0 12px;
+  background: @paper;
+  border: 1px solid @line-strong;
+  border-radius: @r-sm;
+  padding: 0 @sp-1 0 @sp-3;
 }
 
 .url-input-field {
   flex: 1;
   min-width: 0;
   height: 38px;
-  font-size: 13px;
-  color: #1f2330;
+  font-size: @fs-sm;
+  color: @ink;
 }
 
 .url-reset {
   flex-shrink: 0;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: #5b7cfa;
+  padding: @sp-2 @sp-3;
+  font-size: @fs-sm;
+  color: @ink;
+  font-weight: 600;
 }
 
 /* ===== 字段 ===== */
 .field {
   display: flex;
   align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid #f0f1f5;
+  padding: @sp-4 0;
+  border-bottom: 1px solid @line;
 }
 
 .field:last-child {
@@ -126,8 +132,8 @@
 .field-label {
   width: 64px;
   flex-shrink: 0;
-  font-size: 15px;
-  color: #1f2330;
+  font-size: @fs-md;
+  color: @ink;
 }
 
 .field-control {
@@ -142,14 +148,14 @@
   flex: 1;
   min-width: 0;
   text-align: right;
-  font-size: 15px;
-  color: #1f2330;
+  font-size: @fs-md;
+  color: @ink;
 }
 
 .counter {
-  margin-left: 10px;
-  font-size: 12px;
-  color: #bcc1cc;
+  margin-left: @sp-3;
+  font-size: @fs-sm;
+  color: @ink-faint;
   flex-shrink: 0;
 }
 
@@ -158,25 +164,25 @@
   flex: 1;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: @sp-2;
 }
 
 .segment-item {
   min-width: 52px;
   text-align: center;
-  padding: 7px 0;
-  font-size: 14px;
-  color: #5b6472;
-  background: #f0f1f5;
-  border-radius: 18px;
+  padding: @sp-2 0;
+  font-size: @fs-base;
+  color: @ink-mute;
+  background: @fill-deep;
+  border-radius: @r-pill;
   border: 1px solid transparent;
   transition: all 0.15s ease;
 }
 
 .segment-item.is-active {
-  color: #5b7cfa;
-  background: #eef1ff;
-  border-color: #5b7cfa;
+  color: @ink;
+  background: @accent;
+  border-color: @accent;
   font-weight: 600;
 }
 
@@ -186,40 +192,39 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  font-size: 15px;
-  color: #1f2330;
+  font-size: @fs-md;
+  color: @ink;
 }
 
 .picker-control .placeholder {
-  color: #bcc1cc;
+  color: @ink-faint;
 }
 
 .picker-arrow {
-  margin-left: 8px;
-  color: #c4c9d4;
-  font-size: 18px;
+  margin-left: @sp-2;
 }
 
 /* ===== 简介 ===== */
 .bio-box {
   position: relative;
-  background: #f5f6fa;
-  border-radius: 12px;
-  padding: 12px;
+  background: @paper;
+  border: 1px solid @line-strong;
+  border-radius: @r-md;
+  padding: @sp-3;
 }
 
 .bio-input {
   width: 100%;
   height: 88px;
-  font-size: 14px;
+  font-size: @fs-base;
   line-height: 1.5;
-  color: #1f2330;
+  color: @ink;
 }
 
 .bio-counter {
   position: absolute;
-  right: 12px;
-  bottom: 10px;
+  right: @sp-3;
+  bottom: @sp-2;
   margin: 0;
 }
 
@@ -229,25 +234,27 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-  background: #fff;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+  padding: @sp-3 @sp-4 calc(@sp-3 + env(safe-area-inset-bottom));
+  background: @paper;
+  box-shadow: 0 -1px 0 @line;
 }
 
 .save-btn {
-  height: 46px;
-  border-radius: 23px;
-  background: #c9cdd8;
-  color: #fff;
+  height: 48px;
+  border-radius: @r-sm;
+  background: @fill-deep;
+  color: @ink-faint;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: @fs-md;
   font-weight: 600;
+  transition: background 0.16s ease;
 }
 
 .save-btn.is-ready {
-  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  background: @accent;
+  color: @ink;
 }
 
 .save-btn.is-ready:active {

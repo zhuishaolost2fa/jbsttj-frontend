@@ -1,4 +1,5 @@
-import { Input, Text, View } from '@tarojs/components'
+import { Input, View } from '@tarojs/components'
+import AppIcon from '../AppIcon'
 import './index.less'
 
 interface AppSearchBarProps {
@@ -13,27 +14,26 @@ interface AppSearchBarProps {
 }
 
 /**
- * 跨端搜索框：只用 View + Input + Text 自绘，不依赖任何 UI 库。
+ * 跨端搜索框：View + Input + AppIcon 自绘，不依赖任何 UI 库。
  *
  * ⚠️ 为什么不用 nutui 的 SearchBar：
- * 它本身用的是 `@tarojs/components` 的 View/Input（能渲染），但内部的
- * Search / ArrowLeft / MaskClose 图标来自 `@nutui/icons-react-taro`，
- * 后者统一渲染 `<i>` 标签 + CSS `mask` 内嵌 base64 SVG：
- *   1. `i` 不是小程序组件，`dist/base.wxml` 里没有对应模板 → 节点直接为空；
- *   2. 即便标签能映射，wxss 也不支持 `mask` + base64 SVG 这种画法。
- * 小程序端 `<image>` 同样不支持 SVG，所以图标改用文本字符（与站内
- * 「📄 导入 DM 指南」「💬 问答」等用法一致）。
+ * 它内部的 Search / MaskClose 图标渲染 `<i>` 标签 + CSS `mask` 内嵌 base64 SVG，
+ * `i` 不是小程序组件 → 节点直接为空，wxss 也不支持 mask 画法。
+ *
+ * 图标统一走 AppIcon（构建期光栅化的 PNG），跨端可靠。
  */
 function AppSearchBar({
   value,
-  placeholder = '搜索...',
+  placeholder = '搜索剧本名',
   onChange,
   onSearch,
   onClear,
 }: AppSearchBarProps) {
   return (
     <View className='app-searchbar'>
-      <Text className='app-searchbar-icon'>🔍</Text>
+      <View className='app-searchbar-leading'>
+        <AppIcon name='search' tone='mute' size={18} />
+      </View>
       <Input
         className='app-searchbar-input'
         value={value}
@@ -44,8 +44,13 @@ function AppSearchBar({
         onConfirm={(e) => onSearch?.(e.detail.value)}
       />
       {value.length > 0 && (
-        <View className='app-searchbar-clear' onClick={() => onClear?.()}>
-          <Text className='app-searchbar-clear-text'>✕</Text>
+        <View
+          className='app-searchbar-clear'
+          onClick={() => onClear?.()}
+          ariaRole='button'
+          ariaLabel='清除搜索内容'
+        >
+          <AppIcon name='x' tone='mute' size={16} />
         </View>
       )}
     </View>

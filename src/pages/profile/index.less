@@ -1,21 +1,23 @@
+@import '../../styles/tokens.less';
+
 .profile-page {
   min-height: 100vh;
-  background: #f7f8fc;
-  padding: 16px 16px 30px;
+  background: @canvas;
+  padding: @sp-4 @sp-4 @sp-10;
   box-sizing: border-box;
 }
 
-/* ===== 账号卡片 ===== */
+/* ===== 账号卡片：全页唯一的墨底块，用来压住视觉重心 ===== */
 .account-card {
-  padding: 18px 16px;
-  background: #ffffff;
-  border-radius: 14px;
-  margin-bottom: 14px;
+  padding: @sp-5 @sp-4;
+  background: @ink;
+  border-radius: @r-md;
+  margin-bottom: @sp-4;
 }
 
 .account-loading {
-  font-size: 13px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @on-ink-mute;
 }
 
 .account-inner {
@@ -28,11 +30,19 @@
   min-width: 0;
 }
 
+/* 墨底上的头像要有描边，否则默认头像的墨色底会和卡片融成一片 */
+.account-card .avatar-default,
+.account-card .avatar-img {
+  margin-right: @sp-3;
+  border: 1px solid @on-ink-line;
+  box-sizing: border-box;
+}
+
 .account-email {
   display: block;
-  font-size: 16px;
+  font-size: @fs-lg;
   font-weight: 600;
-  color: #1f2330;
+  color: @on-ink;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -40,153 +50,161 @@
 
 .account-sub {
   display: block;
-  margin-top: 4px;
-  font-size: 11px;
-  color: #9aa0ae;
+  margin-top: @sp-1;
+  font-size: @fs-xs;
+  color: @on-ink-mute;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* 墨底上的操作：品牌黄底，保持全站主 CTA 形态 */
 .account-edit {
-  padding: 6px 14px;
-  border-radius: 16px;
-  background: rgba(91, 124, 250, 0.1);
+  padding: @sp-2 @sp-4;
+  border-radius: @r-sm;
+  background: @accent;
   flex-shrink: 0;
-  margin-left: 10px;
+  margin-left: @sp-3;
 }
 
 .account-edit-text {
-  font-size: 13px;
-  color: #5b7cfa;
+  font-size: @fs-sm;
+  color: @ink;
   font-weight: 600;
 }
 
 .login-btn {
-  padding: 7px 18px;
-  border-radius: 16px;
-  background: rgba(91, 124, 250, 0.1);
+  padding: @sp-2 @sp-4;
+  border-radius: @r-sm;
+  background: @accent;
   flex-shrink: 0;
 }
 
 .login-btn-text {
-  font-size: 13px;
-  color: #5b7cfa;
+  font-size: @fs-sm;
+  color: @ink;
   font-weight: 600;
 }
 
 /* ===== 菜单组 ===== */
 .menu-group {
-  background: #ffffff;
-  border-radius: 14px;
-  margin-bottom: 14px;
+  background: @paper;
+  border-radius: @r-md;
+  border: 1px solid @line;
+  margin-bottom: @sp-4;
   overflow: hidden;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 15px 16px;
-  border-bottom: 1px solid #f3f4f8;
+  min-height: 56px;
+  padding: 0 @sp-4;
+  border-bottom: 1px solid @line;
+}
+
+.menu-icon {
+  margin-right: @sp-3;
 }
 
 .menu-item:last-child {
   border-bottom: none;
 }
 
-.menu-icon {
-  font-size: 17px;
-  margin-right: 11px;
-}
-
 .menu-label {
   flex: 1;
-  font-size: 14px;
-  color: #2b2f3d;
+  font-size: @fs-base;
+  color: @ink;
 }
 
 .menu-arrow {
-  font-size: 19px;
-  color: #c8ccd6;
+  margin-left: @sp-2;
 }
 
 /* ===== 导入 DM 手册卡片 ===== */
 .import-card {
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 14px;
+  background: @paper;
+  border: 1px solid @line;
+  border-radius: @r-md;
+  padding: @sp-4;
+  margin-bottom: @sp-4;
 }
 
 .import-card-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: @sp-2;
+  margin-bottom: @sp-3;
 }
 
 .import-card-title {
-  font-size: 15px;
+  font-size: @fs-md;
   font-weight: 600;
-  color: #1f2330;
+  color: @ink;
 }
 
 .import-card-sub {
-  font-size: 11px;
-  color: #9aa0ae;
+  margin-left: auto;
+  font-size: @fs-xs;
+  color: @ink-faint;
 }
 
 /* 提示说明区 */
 .import-hint {
-  padding: 12px;
-  margin-bottom: 14px;
-  border-radius: 10px;
-  background: #f6f8ff;
+  padding: @sp-3;
+  margin-bottom: @sp-4;
+  border-radius: @r-sm;
+  background: @fill;
 }
 
 .import-hint-row {
   display: flex;
   align-items: flex-start;
-  padding: 4px 0;
+  padding: @sp-1 0;
 }
 
 .import-hint-row + .import-hint-row {
-  border-top: 1px dashed #e3e8f5;
+  border-top: 1px dashed @line;
 }
 
 .import-hint-k {
   flex-shrink: 0;
   width: 96px;
-  font-size: 12px;
+  font-size: @fs-sm;
   font-weight: 600;
-  color: #5b7cfa;
+  color: @ink;
 }
 
 .import-hint-v {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: @fs-sm;
   line-height: 1.55;
-  color: #5b6072;
+  color: @ink-mute;
 }
 
 /* ===== 退出 ===== */
 .logout-btn {
-  padding: 14px;
-  background: #ffffff;
-  border-radius: 14px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: @sp-2;
+  padding: @sp-4;
+  background: @paper;
+  border: 1px solid @line;
+  border-radius: @r-md;
 }
 
 .logout-text {
-  font-size: 14px;
-  color: #e54d42;
+  font-size: @fs-base;
+  color: @danger;
+  font-weight: 600;
 }
 
 .foot-hint {
   display: block;
-  margin-top: 22px;
+  margin-top: @sp-6;
   text-align: center;
-  font-size: 11px;
-  color: #b6bac6;
+  font-size: @fs-xs;
+  color: @ink-faint;
 }

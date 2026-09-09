@@ -146,7 +146,7 @@ export default function AvatarEditor({ src, onCancel, onConfirm }: Props) {
     canvas.height = EXPORT
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, EXPORT, EXPORT)
     ctx.save()
     ctx.beginPath()

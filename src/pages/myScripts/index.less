@@ -1,7 +1,9 @@
+@import '../../styles/tokens.less';
+
 .scripts-page {
   min-height: 100vh;
-  background: #f7f8fc;
-  padding: 16px 16px 24px;
+  background: @canvas;
+  padding: @sp-4 @sp-4 @sp-6;
   box-sizing: border-box;
 }
 
@@ -10,73 +12,81 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: @sp-4;
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: @fs-xl;
   font-weight: 700;
-  color: #1f2330;
+  color: @ink;
+  letter-spacing: 0.5px;
 }
 
 .page-count {
-  font-size: 12px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @ink-faint;
 }
 
 .page-tip {
-  padding: 40px 0;
+  padding: @sp-10 0;
   text-align: center;
-  font-size: 13px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @ink-faint;
 }
 
 .page-error {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  background: rgba(229, 77, 66, 0.08);
-  color: #e54d42;
-  font-size: 13px;
+  padding: @sp-3;
+  margin-bottom: @sp-3;
+  border-radius: @r-sm;
+  border-left: 3px solid @danger;
+  background: @danger-soft;
+  color: @danger;
+  font-size: @fs-sm;
 }
 
 /* ===== 空状态 ===== */
 .empty-block {
-  padding: 64px 24px;
+  padding: @sp-12 @sp-6;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.empty-emoji {
-  font-size: 40px;
-  line-height: 1;
-  margin-bottom: 14px;
+/* 空态小标签：用文字而不是图标 */
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: @fill;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: @sp-4;
 }
 
 .empty-title {
-  font-size: 15px;
+  font-size: @fs-md;
   font-weight: 600;
-  color: #3d4252;
-  margin-bottom: 6px;
+  color: @ink;
+  margin-bottom: @sp-2;
 }
 
 .empty-desc {
-  font-size: 12px;
-  color: #9aa0ae;
+  font-size: @fs-sm;
+  color: @ink-faint;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: @sp-5;
 }
 
 .empty-btn {
-  padding: 9px 26px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  padding: @sp-3 @sp-6;
+  border-radius: @r-sm;
+  background: @accent;
 }
 
 .empty-btn-text {
-  font-size: 14px;
-  color: #ffffff;
+  font-size: @fs-base;
+  color: @ink;
   font-weight: 600;
 }
 
@@ -88,29 +98,29 @@
 .script-card {
   display: flex;
   align-items: center;
-  padding: 14px;
-  margin-bottom: 10px;
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(31, 35, 48, 0.05);
+  padding: @sp-4;
+  margin-bottom: @sp-3;
+  background: @paper;
+  border: 1px solid @line;
+  border-radius: @r-md;
 }
 
 .card-cover {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #5b7cfa, #8b5cf6);
+  border-radius: @r-sm;
+  background: @ink;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: @sp-3;
 }
 
 .cover-text {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: @accent;
 }
 
 .card-body {
@@ -125,76 +135,77 @@
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: @fs-md;
   font-weight: 600;
-  color: #1f2330;
+  color: @ink;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 60%;
 }
 
-/* ===== 状态徽章 ===== */
+/* ===== 状态徽章：只用墨 / 黄 / 灰三档，靠底色深浅区分 ===== */
 .card-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: @fs-xs;
+  padding: 2px @sp-2;
+  border-radius: @r-xs;
   flex-shrink: 0;
 }
 
 .card-badge.is-ready {
-  color: #12a150;
-  background: rgba(18, 161, 80, 0.1);
+  color: @ink;
+  background: @accent;
+  font-weight: 600;
 }
 
 .card-badge.is-parsing {
-  color: #5b7cfa;
-  background: rgba(91, 124, 250, 0.1);
+  color: @ink;
+  background: @accent-soft;
 }
 
 .card-badge.is-failed {
-  color: #e54d42;
-  background: rgba(229, 77, 66, 0.1);
+  color: @danger;
+  background: @danger-soft;
 }
 
 .card-badge.is-idle {
-  color: #9aa0ae;
-  background: rgba(154, 160, 174, 0.12);
+  color: @ink-faint;
+  background: @fill-deep;
 }
 
 /* ===== 元信息 ===== */
 .card-meta {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 5px;
+  margin-top: @sp-1;
 }
 
 .meta-item {
-  font-size: 11px;
-  color: #9aa0ae;
-  margin-right: 10px;
+  font-size: @fs-xs;
+  color: @ink-faint;
+  margin-right: @sp-3;
 }
 
 .meta-item.is-draft {
-  color: #d98b13;
+  color: @ink-mute;
 }
 
 /* ===== 进度 ===== */
 .card-progress {
-  margin-top: 8px;
+  margin-top: @sp-2;
 }
 
 .progress-track {
   height: 4px;
-  border-radius: 2px;
-  background: rgba(91, 124, 250, 0.14);
+  border-radius: @r-pill;
+  background: @fill-deep;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #5b7cfa, #8b5cf6);
+  border-radius: @r-pill;
+  background: @accent;
   transition: width 0.4s ease;
 }
 
@@ -215,16 +226,16 @@
 
 .progress-text {
   display: block;
-  margin-top: 5px;
-  font-size: 11px;
-  color: #5b7cfa;
+  margin-top: @sp-1;
+  font-size: @fs-xs;
+  color: @ink;
 }
 
 .card-error {
   display: block;
-  margin-top: 6px;
-  font-size: 11px;
-  color: #e54d42;
+  margin-top: @sp-2;
+  font-size: @fs-xs;
+  color: @danger;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -232,39 +243,32 @@
 
 .card-ready {
   display: block;
-  margin-top: 6px;
-  font-size: 11px;
-  color: #12a150;
+  margin-top: @sp-2;
+  font-size: @fs-xs;
+  color: @ink;
 }
 
 .card-hint {
   display: block;
-  margin-top: 6px;
-  font-size: 11px;
-  color: #b6bac6;
+  margin-top: @sp-2;
+  font-size: @fs-xs;
+  color: @ink-faint;
 }
 
 .card-arrow {
-  font-size: 20px;
-  color: #c8ccd6;
-  margin-left: 8px;
+  margin-left: @sp-2;
   flex-shrink: 0;
 }
 
-/* ===== 删除按钮 ===== */
+/* ===== 删除按钮：垃圾桶图标 ===== */
 .card-del {
+  flex-shrink: 0;
+  margin-left: @sp-2;
   width: 30px;
   height: 30px;
-  flex-shrink: 0;
-  margin-left: 4px;
-  border-radius: 8px;
+  border-radius: @r-xs;
+  border: 1px solid @line;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(229, 77, 66, 0.08);
-}
-
-.card-del-icon {
-  font-size: 15px;
-  line-height: 1;
 }

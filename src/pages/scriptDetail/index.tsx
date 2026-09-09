@@ -22,7 +22,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, Input } from "@tarojs/components";
-import Taro, { useRouter } from "@tarojs/taro";
+import Taro, { useDidHide, useDidShow, useRouter } from "@tarojs/taro";
 import { fetchScriptDetail, type ScriptItemCamel } from "../../services/script";
 import {
   askScriptQuestion,
@@ -48,6 +48,7 @@ import { usePageMeta } from "../../hooks/usePageMeta";
 import Avatar from "../../components/Avatar";
 import QuestionPanel from "../../components/QuestionPanel";
 import StoryPanel from "../../components/StoryPanel";
+import AppIcon from "../../components/AppIcon";
 import "./index.less";
 
 /** 聊天气泡的答案来路：手册原文 / AI 生成 / 无结果 / 社区真人解答（引导问题直出） */
@@ -163,7 +164,9 @@ function ScriptDetailPage() {
 
   /* 内容 tab：问答（聊天）/ 故事还原（共读）。故事还原是公开接口，
    * 不依赖手册索引就绪，任何时候都可以切过去浏览。 */
-  const [activeTab, setActiveTab] = useState<"qa" | "story">("qa");
+  const [activeTab, setActiveTab] = useState<"qa" | "story">(
+    router.params?.tab === "story" ? "story" : "qa"
+  );
 
   /* 首渲染即从 localStorage 恢复上次会话（scriptCode 在首渲染已可从路由参数拿到），
    * 用惰性初始化而不是 effect 恢复，避免「先写空数组覆盖存档、再读档」的时序坑。 */
@@ -207,6 +210,15 @@ function ScriptDetailPage() {
 
   const mountedRef = useRef(true);
 
+  /**
+   * 页面可见性：离开页面（navigateBack / 切 tab / 锁屏）时暂停 import-status 轮询，
+   * 回来时恢复。usePolling 在 visible=false 期间不计入失败次数，不会误触发「停表」。
+   * 与「我的剧本」页同一套口径 —— 之前这里漏接，页面跳走后 5s 一次仍在空转烧请求。
+   */
+  const [visible, setVisible] = useState(true);
+  useDidShow(() => setVisible(true));
+  useDidHide(() => setVisible(false));
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -235,7 +247,7 @@ function ScriptDetailPage() {
       title: "清除会话",
       content: "清除后本剧本的问答记录将不可恢复",
       confirmText: "清除",
-      confirmColor: "#e54d42",
+      confirmColor: "#C0392B",
       success: (res) => {
         if (!res.confirm) return;
         setMessages([]);
@@ -296,6 +308,7 @@ function ScriptDetailPage() {
   const busy = !isTerminalStatus(overall);
   usePolling({
     active: busy && !!scriptCode && !!script,
+    visible,
     interval: POLL_INTERVAL,
     task: loadStatus,
     onGiveUp: () =>
@@ -638,13 +651,15 @@ function ScriptDetailPage() {
           className={`content-tab ${activeTab === "qa" ? "is-active" : ""}`}
           onClick={() => setActiveTab("qa")}
         >
-          <Text className="content-tab-text">💬 问答</Text>
+          <AppIcon name="message-circle" tone={activeTab === "qa" ? "ink" : "mute"} size={15} className="content-tab-icon" />
+          <Text className="content-tab-text">问答</Text>
         </View>
         <View
           className={`content-tab ${activeTab === "story" ? "is-active" : ""}`}
           onClick={() => setActiveTab("story")}
         >
-          <Text className="content-tab-text">📖 故事还原</Text>
+          <AppIcon name="book-open" tone={activeTab === "story" ? "ink" : "mute"} size={15} className="content-tab-icon" />
+          <Text className="content-tab-text">故事还原</Text>
         </View>
       </View>
 
@@ -707,10 +722,12 @@ function ScriptDetailPage() {
               className="qpanel-btn"
               onClick={() => setQuestionPanelOpen(true)}
             >
-              <Text className="qpanel-btn-text">❓ 用户提问</Text>
+              <AppIcon name="help-circle" tone="ink" size={14} className="toolbar-btn-icon" />
+              <Text className="qpanel-btn-text">用户提问</Text>
             </View>
             <View className="catalog-btn" onClick={openCatalog}>
-              <Text className="catalog-btn-text">📖 问答目录</Text>
+              <AppIcon name="list" tone="ink" size={14} className="toolbar-btn-icon" />
+              <Text className="catalog-btn-text">问答目录</Text>
             </View>
           </View>
         </View>
@@ -728,7 +745,9 @@ function ScriptDetailPage() {
           /* 冷启动引导（引导问题 + 导入者致谢）：仅在还没有任何消息时展示，
            * 用户提出第一个问题（或点击引导问题）后随本区块一并清除。 */
           <View className="chat-intro">
-            <Text className="intro-emoji">💬</Text>
+            <View className="intro-icon">
+              <AppIcon name="message-circle" tone="ink" size={26} />
+            </View>
             <Text className="intro-title">问问这本的手册</Text>
             <Text className="intro-desc">
               先在手册里做语义检索，命中现成答案就直接给你；
@@ -912,8 +931,10 @@ function ScriptDetailPage() {
               <View
                 className="sheet-close"
                 onClick={() => setCatalogOpen(false)}
+                ariaRole="button"
+                ariaLabel="关闭"
               >
-                <Text className="sheet-close-text">✕</Text>
+                <AppIcon name="x" tone="ink" size={14} />
               </View>
             </View>
             <ScrollView className="sheet-body" scrollY>
@@ -968,7 +989,7 @@ function ScriptDetailPage() {
             }`}
             onClick={() => submitQuestion(inputValue)}
           >
-            <Text className="send-text">{asking ? "…" : "发送"}</Text>
+            <AppIcon name="send" tone="ink" size={17} className="send-icon" />
           </View>
         </View>
       ) : null}

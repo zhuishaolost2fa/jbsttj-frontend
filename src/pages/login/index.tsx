@@ -5,6 +5,7 @@ import { useAuth } from '../../store/auth'
 import { toFriendlyMessage } from '../../services/auth'
 import { HOME_PAGE, IS_WEAPP, PASSWORD_MIN_LENGTH } from '../../constants/auth'
 import { usePageMeta } from '../../hooks/usePageMeta'
+import AppIcon from '../../components/AppIcon'
 import './index.less'
 
 type Mode = 'login' | 'register'
@@ -159,7 +160,10 @@ function Login() {
     <View className='login-page'>
       <View className='login-card'>
         <View className='login-brand'>
-          <Text className='login-brand-emoji'>🎭</Text>
+          {/* 品牌标记：墨底 + 品牌黄字，不用 emoji（小程序端可能掉字） */}
+          <View className='login-brand-mark'>
+            <Text className='login-brand-mark-text'>剧</Text>
+          </View>
           <Text className='login-brand-title'>剧本杀复盘助手</Text>
           <Text className='login-brand-sub'>
             {showWechat
@@ -184,7 +188,7 @@ function Login() {
 
             {!!errorMsg && (
               <View className='form-alert is-error'>
-                <Text className='alert-icon'>!</Text>
+                <AppIcon name='alert-circle' tone='danger' size={15} className='alert-icon' />
                 <Text className='alert-text'>{errorMsg}</Text>
               </View>
             )}
@@ -282,14 +286,14 @@ function Login() {
 
               {!!errorMsg && (
                 <View className='form-alert is-error'>
-                  <Text className='alert-icon'>!</Text>
+                  <AppIcon name='alert-circle' tone='danger' size={15} className='alert-icon' />
                   <Text className='alert-text'>{errorMsg}</Text>
                 </View>
               )}
 
               {!!noticeMsg && (
                 <View className='form-alert is-notice'>
-                  <Text className='alert-icon'>✓</Text>
+                  <AppIcon name='check-circle' tone='ink' size={15} className='alert-icon' />
                   <Text className='alert-text'>{noticeMsg}</Text>
                 </View>
               )}

@@ -53,6 +53,13 @@ export interface ProfilePatch {
   region?: string | null
 }
 
+export type OtpType =
+  | 'signup'
+  | 'recovery'
+  | 'magiclink'
+  | 'email_change'
+  | 'email'
+
 export interface RegisterResult {
   /** 是否已直接拿到登录态。Supabase 开启邮箱验证时为 false */
   loggedIn: boolean
@@ -69,7 +76,8 @@ export interface MessageResult {
 /** Supabase 常见错误文案 → 中文，避免把英文原文糊到用户脸上 */
 const ERROR_TEXT_MAP: Array<[RegExp, string]> = [
   [/invalid login credentials/i, '邮箱或密码不正确'],
-  [/email not confirmed/i, '邮箱尚未验证，请先到邮箱点击验证链接'],
+  // 验证邮件里只有验证码没有链接（腾讯云模板规范限制），别再提示「点击链接」
+  [/email not confirmed/i, '邮箱尚未验证，请用邮箱里的验证码完成验证'],
   [/user already registered|already been registered/i, '该邮箱已注册，请直接登录'],
   [/password should be at least/i, '密码长度不足，至少 6 位'],
   [/unable to validate email address/i, '邮箱格式不正确'],
@@ -77,6 +85,8 @@ const ERROR_TEXT_MAP: Array<[RegExp, string]> = [
   [/email rate limit exceeded/i, '邮件发送过于频繁，请稍后再试'],
   [/signups not allowed|signup is disabled/i, '当前未开放注册，请联系管理员'],
   [/weak password/i, '密码强度不足，请使用更复杂的密码'],
+  // 验证码填错 / 过期：GoTrue 原文是 "Token has expired or is invalid"
+  [/token has expired or is invalid|otp_expired/i, '验证码错误或已过期，请重新获取'],
 ]
 
 /**
@@ -107,6 +117,14 @@ export function toFriendlyMessage(err: unknown): string {
     if (err.code === 'email_taken') return '该邮箱已被其他账号使用，请换一个'
     // Supabase 内置 SMTP 限流很紧（约 60 秒 1 封），绑定邮箱时最容易撞上
     if (err.code === 'over_email_send_rate_limit') return '发送过于频繁，请稍后再试'
+    // 自建发信通道后的统一限流码（见后端 app/core/exceptions.py），
+    // details.hint 区分两种完全不同的成因，文案要分开给
+    if (err.code === 'auth_email_rate_limited') {
+      const hint = (err.details as Record<string, unknown> | undefined)?.hint
+      return hint === 'cooldown_60s'
+        ? '发送过于频繁，请稍后再试'
+        : '邮件发送额度已用尽，请稍后再试'
+    }
 
     // 微信错误码是结构化的，优先按 code 命中；其余 wechat_* 用服务端原文兜底
     const wxText = WECHAT_ERROR_TEXT[err.code]
@@ -136,12 +154,58 @@ export async function register(email: string, password: string): Promise<Registe
     return { loggedIn: true, session, message: '注册成功' }
   }
 
-  // access_token 为空 = Supabase 开启了邮箱验证，需要用户先去邮箱确认
+  // access_token 为空 = Supabase 开启了邮箱验证，需要用户先确认邮件里的验证码
   return {
     loggedIn: false,
     session: null,
-    message: '注册成功，请前往邮箱完成验证后再登录',
+    message: `验证码已发往 ${email.trim()}，请查收后填写`,
   }
+}
+
+/**
+ * 用邮箱里的验证码兑换会话，成功后写入全局登录态。
+ *
+ * 邮件里没有可点链接（腾讯云模板审核限制），所以这一步等价于「点击验证链接」。
+ * type 决定兑换语义，注册流程固定用 signup；传错会被后端 422 拦下。
+ *
+ * ⚠️ 验证码一次性：同一个码第二次提交必然失败，前端不要自动重试。
+ */
+export async function verifyEmail(
+  email: string,
+  code: string,
+  type: OtpType = 'signup'
+): Promise<AuthSession> {
+  const data = await request<TokenResponse>({
+    url: AUTH_PATH.verifyEmail,
+    method: 'POST',
+    data: { email: email.trim(), code: code.trim(), type },
+    auth: false,
+  })
+
+  const session = toSession(data)
+  if (!session) {
+    throw new ApiError(
+      '验证成功但未拿到有效凭证，请重新登录',
+      500,
+      'invalid_token_response'
+    )
+  }
+  tokenManager.setSession(session)
+  return session
+}
+
+/**
+ * 重发注册验证码。
+ *
+ * 实现就是再调一次 register —— GoTrue 对「已注册但未验证」的用户会重新签发
+ * 验证码并覆盖旧的，这正是我们想要的行为。代价是必须带上密码（后端
+ * RegisterRequest 的 password 是必填），所以刷新页面后只能回注册表单重来。
+ */
+export async function resendSignupCode(
+  email: string,
+  password: string
+): Promise<void> {
+  await register(email, password)
 }
 
 /** 邮箱密码登录，成功后写入全局会话 */

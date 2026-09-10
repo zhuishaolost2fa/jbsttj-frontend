@@ -29,6 +29,14 @@ export const AUTH_PATH = {
   emailBindConfirm: '/auth/me/email/bind/confirm',
   /** POST /auth/me/password/set：微信用户设置登录密码（不校验当前密码） */
   setPassword: '/auth/me/password/set',
+  /**
+   * POST /auth/verify-email：用邮箱里的验证码换会话。
+   *
+   * 为什么需要它：发信走腾讯云 SES，其模板审核规范不接受「整条 URL 做成变量」，
+   * 通过审核的模板只能展示纯数字验证码，**邮件里没有可点链接**。所以注册确认
+   * 这条路由必须在前端收验证码，效果与点开验证链接等价。
+   */
+  verifyEmail: '/auth/verify-email',
 } as const
 
 /**
@@ -58,6 +66,20 @@ export const DEFAULT_EXPIRES_IN = 3600
 /** 后端 RegisterRequest/LoginRequest 的 password 约束为 min_length=6, max_length=128 */
 export const PASSWORD_MIN_LENGTH = 6
 export const PASSWORD_MAX_LENGTH = 128
+
+/**
+ * 邮箱验证码位数。
+ *
+ * 本项目后端 Supabase 的 `mailer_otp_length = 8`（不是 GoTrue 默认的 6），
+ * 改之前务必确认服务端配置 —— 位数不对用户永远填不满输入框。
+ */
+export const EMAIL_OTP_LENGTH = 8
+
+/**
+ * 重发验证码的倒计时（秒）。
+ * GoTrue 对同一邮箱的 signup 有独立的 60 秒限流，短于这个数会被拒。
+ */
+export const RESEND_COOLDOWN_SECONDS = 60
 
 /** 登录页路径 */
 export const LOGIN_PAGE = '/pages/login/index'

@@ -31,6 +31,13 @@ interface AuthContextValue {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<AuthSession>
   register: (email: string, password: string) => Promise<authApi.RegisterResult>
+  /**
+   * 用邮箱里的验证码完成注册验证，成功后直接建立登录态。
+   * 邮件里没有可点链接（腾讯云模板审核限制），所以这一步不可省。
+   */
+  verifyEmail: (email: string, code: string, type?: authApi.OtpType) => Promise<AuthSession>
+  /** 重发注册验证码（内部再次调用 register，故需要密码） */
+  resendSignupCode: (email: string, password: string) => Promise<void>
   /** 微信小程序一键登录。非小程序环境会抛 unsupported_env */
   loginWithWechat: () => Promise<AuthSession>
   /** 把微信绑到当前账号上（需登录态，不建新账号）。非小程序环境会抛 unsupported_env */
@@ -144,6 +151,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authApi.register(email, password)
   }, [])
 
+  const verifyEmail = useCallback(
+    async (email: string, code: string, type: authApi.OtpType = 'signup') => {
+      const session = await authApi.verifyEmail(email, code, type)
+      // 会话刚建立，立刻拉一次完整资料，避免 UI 上昵称/头像还是空的
+      void refreshUser().catch(() => {})
+      return session
+    },
+    [refreshUser]
+  )
+
+  const resendSignupCode = useCallback(
+    (email: string, password: string) => authApi.resendSignupCode(email, password),
+    []
+  )
+
   const loginWithWechat = useCallback(async () => {
     const session = await authApi.loginWithWechat()
     // 登录后立刻拉一次资料：登录响应里只有 id/email/role，昵称、头像、
@@ -183,6 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: status === 'authenticated',
       login,
       register,
+      verifyEmail,
+      resendSignupCode,
       loginWithWechat,
       bindWechat,
       startBindEmail,
@@ -190,7 +214,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [status, user, login, register, loginWithWechat, bindWechat, startBindEmail, confirmBindEmail, logout, refreshUser]
+    [
+      status,
+      user,
+      login,
+      register,
+      verifyEmail,
+      resendSignupCode,
+      loginWithWechat,
+      bindWechat,
+      startBindEmail,
+      confirmBindEmail,
+      logout,
+      refreshUser,
+    ]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

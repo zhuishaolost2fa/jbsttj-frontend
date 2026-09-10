@@ -28,7 +28,7 @@ import {
   startBindEmail,
   toFriendlyMessage,
 } from '../../../services/auth'
-import { IS_WEAPP, PASSWORD_MIN_LENGTH } from '../../../constants/auth'
+import { IS_WEAPP, EMAIL_OTP_LENGTH, PASSWORD_MIN_LENGTH } from '../../../constants/auth'
 import { usePageMeta } from '../../../hooks/usePageMeta'
 import './index.less'
 
@@ -168,8 +168,12 @@ export default function SecurityPage() {
   /** 第 2 步：校验验证码并改邮箱 */
   const doBindEmail = useCallback(async () => {
     if (bindBusy) return
-    if (bindCode.trim().length < 4) {
-      Taro.showToast({ title: '请输入邮件中的验证码', icon: 'none' })
+    // 位数必须精确匹配服务端的 mailer_otp_length（本项目是 8，不是 GoTrue 默认的 6）
+    if (bindCode.trim().length !== EMAIL_OTP_LENGTH) {
+      Taro.showToast({
+        title: `请输入邮件中的 ${EMAIL_OTP_LENGTH} 位验证码`,
+        icon: 'none',
+      })
       return
     }
     setBindBusy(true)
@@ -251,9 +255,11 @@ export default function SecurityPage() {
               <View className='row-control'>
                 <Input
                   className='pwd-input'
-                  placeholder='邮件中的 6 位验证码'
+                  type='number'
+                  maxlength={EMAIL_OTP_LENGTH}
+                  placeholder={`邮件中的 ${EMAIL_OTP_LENGTH} 位验证码`}
                   value={bindCode}
-                  onInput={(e) => setBindCode(e.detail.value)}
+                  onInput={(e) => setBindCode((e.detail.value || '').replace(/\D/g, '').slice(0, EMAIL_OTP_LENGTH))}
                 />
               </View>
             </View>
@@ -262,7 +268,7 @@ export default function SecurityPage() {
           <View
             className={`submit-btn${
               (codeSent
-                ? bindCode.trim().length >= 4
+                ? bindCode.trim().length === EMAIL_OTP_LENGTH
                 : EMAIL_RE.test(bindEmailInput.trim())) && !bindBusy
                 ? ' is-ready'
                 : ''

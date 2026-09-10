@@ -1,19 +1,37 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { useAuth } from '../../store/auth'
 import { toFriendlyMessage } from '../../services/auth'
-import { HOME_PAGE, IS_WEAPP, PASSWORD_MIN_LENGTH } from '../../constants/auth'
+import {
+  EMAIL_OTP_LENGTH,
+  HOME_PAGE,
+  IS_WEAPP,
+  PASSWORD_MIN_LENGTH,
+  RESEND_COOLDOWN_SECONDS,
+} from '../../constants/auth'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import AppIcon from '../../components/AppIcon'
 import './index.less'
 
-type Mode = 'login' | 'register'
+/**
+ * login=登录 / register=注册 / verify=填写邮箱验证码。
+ *
+ * verify 之所以必须有：发信走腾讯云 SES，其模板审核规范不接受「整条链接做成
+ * 变量」，通过审核的模板只能展示纯数字验证码 —— 邮件里**没有可点链接**，
+ * 注册就必须在前端这一步收验证码。
+ */
+type Mode = 'login' | 'register' | 'verify'
 /** 小程序端有两种入口：微信一键登录 / 邮箱密码。H5 端恒为 password */
 type Entry = 'wechat' | 'password'
 
 /** 邮箱格式校验：和后端 pydantic EmailStr 的宽松程度保持接近即可 */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+/** 验证码只允许纯数字：GoTrue 的 mailer_otp 是数字，过滤掉误粘造成的空格 */
+function normalizeOtp(raw: string): string {
+  return (raw || '').replace(/\D/g, '').slice(0, EMAIL_OTP_LENGTH)
+}
 
 function Login() {
   usePageMeta(
@@ -21,7 +39,13 @@ function Login() {
     '登录后即可导入 DM 主持人手册、参与提问解答并同步你的剧本。'
   )
   const router = useRouter()
-  const { login, register, loginWithWechat } = useAuth()
+  const {
+    login,
+    register,
+    verifyEmail,
+    resendSignupCode,
+    loginWithWechat,
+  } = useAuth()
 
   const [entry, setEntry] = useState<Entry>(IS_WEAPP ? 'wechat' : 'password')
   const [mode, setMode] = useState<Mode>('login')
@@ -29,14 +53,24 @@ function Login() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [countdown, setCountdown] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [noticeMsg, setNoticeMsg] = useState('')
 
   const isRegister = mode === 'register'
+  const isVerify = mode === 'verify'
   /** 小程序端且未切到「邮箱密码」时，只渲染微信一键登录 */
   const showWechat = IS_WEAPP && entry === 'wechat'
-  const showPasswordForm = !showWechat
+  const showPasswordForm = !showWechat && !isVerify
+
+  /**
+   * 注册时的密码快照。
+   * 重发验证码要再调一次 register（后端 password 必填），进 verify 视图后
+   * 表单已被隐藏，不清掉用户还能改，得单独留一份。
+   */
+  const pendingPassword = useRef('')
 
   /** 登录成功后的去向：优先回到来源页 */
   const redirect = useMemo(() => {
@@ -90,6 +124,58 @@ function Login() {
     }
   }, [redirect])
 
+  /** 重发验证码倒计时 */
+  useEffect(() => {
+    if (countdown <= 0) return
+    const timer = setTimeout(() => setCountdown((v) => v - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [countdown])
+
+  /** 提交邮箱验证码，成功后建立登录态并跳转 */
+  const handleVerifyOtp = useCallback(async () => {
+    if (submitting) return
+    if (otp.length !== EMAIL_OTP_LENGTH) {
+      setErrorMsg(`请输入 ${EMAIL_OTP_LENGTH} 位验证码`)
+      return
+    }
+
+    setErrorMsg('')
+    setNoticeMsg('')
+    setSubmitting(true)
+
+    try {
+      await verifyEmail(email, otp, 'signup')
+      Taro.showToast({ title: '验证成功', icon: 'success' })
+      setTimeout(goAfterAuth, 400)
+    } catch (err) {
+      setErrorMsg(toFriendlyMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }, [submitting, otp, verifyEmail, email, goAfterAuth])
+
+  /**
+   * 重发验证码。
+   * GoTrue 对同一邮箱有 60 秒冷却，倒计时期间点了也没用，直接禁用按钮。
+   */
+  const handleResendCode = useCallback(async () => {
+    if (submitting || countdown > 0) return
+
+    setErrorMsg('')
+    setNoticeMsg('')
+    setSubmitting(true)
+
+    try {
+      await resendSignupCode(email, pendingPassword.current)
+      setCountdown(RESEND_COOLDOWN_SECONDS)
+      setNoticeMsg(`验证码已重新发送，请查收 ${email.trim()}`)
+    } catch (err) {
+      setErrorMsg(toFriendlyMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }, [submitting, countdown, resendSignupCode, email])
+
   const handleWechatLogin = useCallback(async () => {
     if (submitting) return
 
@@ -129,9 +215,12 @@ function Login() {
           Taro.showToast({ title: '注册成功', icon: 'success' })
           setTimeout(goAfterAuth, 600)
         } else {
-          // 开启了邮箱验证：留在当前页，切回登录 tab 等用户验证完再登录
+          // 开启了邮箱验证：切到验证码视图，验证完直接就有登录态，不用再登一次
+          pendingPassword.current = password
           setNoticeMsg(result.message)
-          setMode('login')
+          setMode('verify')
+          setOtp('')
+          setCountdown(RESEND_COOLDOWN_SECONDS)
           setPassword('')
           setConfirmPassword('')
         }
@@ -155,7 +244,6 @@ function Login() {
     password,
     goAfterAuth,
   ])
-
   return (
     <View className='login-page'>
       <View className='login-card'>
@@ -168,9 +256,11 @@ function Login() {
           <Text className='login-brand-sub'>
             {showWechat
               ? '使用微信身份一键登录，无需注册'
-              : isRegister
-                ? '创建账号，开始记录你的每一场本'
-                : '登录后即可导入与管理 DM 指南'}
+              : isVerify
+                ? '邮件里没有验证链接，请在此填写验证码'
+                : isRegister
+                  ? '创建账号，开始记录你的每一场本'
+                  : '登录后即可导入与管理 DM 指南'}
           </Text>
         </View>
 
@@ -332,6 +422,77 @@ function Login() {
               )}
             </View>
           </>
+        )}
+
+        {/* ===== 邮箱验证码：注册的最后一步 =====
+            邮件里只有纯数字验证码没有链接（腾讯云模板审核规范不接受链接做变量），
+            所以这一步是强制的，成功后直接签发会话。 */}
+        {isVerify && (
+          <View className='login-form'>
+            <View className='verify-target'>
+              <AppIcon name='inbox' tone='ink' size={15} className='verify-mail-icon' />
+              <Text className='verify-target-text'>{email.trim()}</Text>
+            </View>
+
+            <View className='form-field'>
+              <Text className='field-label'>邮箱验证码</Text>
+              <Input
+                className='otp-input'
+                type='number'
+                value={otp}
+                maxlength={EMAIL_OTP_LENGTH}
+                placeholder={`${EMAIL_OTP_LENGTH} 位数字`}
+                placeholderClass='otp-placeholder'
+                confirmType='done'
+                onInput={(e) => {
+                  setOtp(normalizeOtp(e.detail.value))
+                  if (errorMsg) setErrorMsg('')
+                }}
+                onConfirm={() => void handleVerifyOtp()}
+              />
+              <View className='otp-hint-row'>
+                <Text className='otp-count'>{otp.length}/{EMAIL_OTP_LENGTH}</Text>
+                <Text
+                  className={`resend-btn ${countdown > 0 ? 'is-disabled' : ''}`}
+                  onClick={() => void handleResendCode()}
+                >
+                  {countdown > 0 ? `${countdown}s 后重发` : '重新发送'}
+                </Text>
+              </View>
+            </View>
+
+            {!!errorMsg && (
+              <View className='form-alert is-error'>
+                <AppIcon name='alert-circle' tone='danger' size={15} className='alert-icon' />
+                <Text className='alert-text'>{errorMsg}</Text>
+              </View>
+            )}
+
+            {!!noticeMsg && (
+              <View className='form-alert is-notice'>
+                <AppIcon name='check-circle' tone='ink' size={15} className='alert-icon' />
+                <Text className='alert-text'>{noticeMsg}</Text>
+              </View>
+            )}
+
+            <View
+              className={`submit-btn ${submitting ? 'is-loading' : ''}`}
+              onClick={() => void handleVerifyOtp()}
+            >
+              <Text className='submit-text'>
+                {submitting ? '验证中…' : '完成验证'}
+              </Text>
+            </View>
+
+            <View className='login-switch'>
+              <Text
+                className='switch-link'
+                onClick={() => switchMode('register')}
+              >
+                换个邮箱重新注册
+              </Text>
+            </View>
+          </View>
         )}
       </View>
     </View>

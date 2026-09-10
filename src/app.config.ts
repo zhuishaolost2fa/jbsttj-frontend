@@ -6,6 +6,7 @@ export default defineAppConfig({
     "pages/profile/security/index",
     "pages/scriptDetail/index",
     "pages/login/index",
+    "pages/messages/index",
     "pages/myScripts/index",
     "pages/scriptRequests/index",
   ],

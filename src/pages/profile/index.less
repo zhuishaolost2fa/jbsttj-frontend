@@ -208,3 +208,22 @@
   font-size: @fs-xs;
   color: @ink-faint;
 }
+
+/* 菜单项右侧的未读红点：绝对定位到 chevron 左边，避免挤压箭头 */
+.menu-item .menu-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: @sp-2;
+  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 11px;
+  text-align: center;
+  color: @ink;
+  background: @accent;
+  border-radius: @r-pill;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+

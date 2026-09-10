@@ -1,0 +1,239 @@
+@import '../../styles/tokens.less';
+
+.messages-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: @canvas;
+  box-sizing: border-box;
+}
+
+/* ===== tabs ===== */
+.messages-tabs {
+  display: flex;
+  align-items: stretch;
+  padding: 0 @sp-4;
+  background: @canvas;
+  border-bottom: 1px solid @line;
+  position: sticky;
+  top: 0;
+  z-index: @z-sticky;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: @sp-3 @sp-2;
+  margin-right: @sp-4;
+  cursor: pointer;
+}
+
+.tab-text {
+  font-size: @fs-base;
+  color: @ink-mute;
+  font-weight: 500;
+}
+
+.tab-active .tab-text {
+  color: @ink;
+  font-weight: 600;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 24px;
+  height: 3px;
+  background: @accent;
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.tab-badge {
+  margin-left: 4px;
+  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 11px;
+  text-align: center;
+  color: @ink;
+  background: @accent;
+  border-radius: 9px;
+  font-weight: 600;
+}
+
+/* ===== list ===== */
+.messages-scroll {
+  flex: 1;
+  padding: 0 @sp-4 @sp-12;
+  box-sizing: border-box;
+}
+
+.messages-list {
+  padding: @sp-3 0;
+}
+
+.message-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  background: @paper;
+  border-radius: @r-md;
+  padding: @sp-3 @sp-3;
+  margin-bottom: @sp-3;
+  box-shadow: @shadow-sm;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.card-hover {
+  background: @fill;
+}
+
+.message-card.is-unread {
+  background: @paper;
+}
+
+.message-card.is-read {
+  background: @fill;
+  opacity: 0.92;
+}
+
+/* 未读左侧黄色竖条 */
+.unread-bar {
+  position: absolute;
+  top: @sp-3;
+  bottom: @sp-3;
+  left: 0;
+  width: 3px;
+  background: @accent;
+  border-radius: 0 2px 2px 0;
+}
+
+.message-icon {
+  flex-shrink: 0;
+  margin-right: @sp-3;
+  margin-top: 2px;
+}
+
+.message-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-line1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.message-label {
+  font-size: @fs-xs;
+  color: @ink-mute;
+  font-weight: 500;
+}
+
+.message-card.is-unread .message-label {
+  color: @accent-deep;
+  font-weight: 600;
+}
+
+.message-time {
+  font-size: @fs-xs;
+  color: @ink-faint;
+  flex-shrink: 0;
+  margin-left: @sp-2;
+}
+
+.message-title {
+  display: block;
+  font-size: @fs-base;
+  color: @ink;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-card.is-read .message-title {
+  font-weight: 500;
+}
+
+.message-content {
+  display: block;
+  font-size: @fs-sm;
+  color: @ink-mute;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.messages-foot {
+  padding: @sp-4 0;
+  text-align: center;
+}
+
+.messages-foot-text {
+  font-size: @fs-xs;
+  color: @ink-faint;
+}
+
+/* ===== fab：全部已读 ===== */
+.messages-fab {
+  position: fixed;
+  right: @sp-4;
+  bottom: @sp-6;
+  display: flex;
+  align-items: center;
+  padding: @sp-2 @sp-4;
+  background: @ink;
+  color: @on-ink;
+  border-radius: @r-pill;
+  box-shadow: @shadow-md;
+  cursor: pointer;
+  z-index: @z-sheet;
+}
+
+.fab-hover {
+  background: @ink-soft;
+}
+
+.fab-text {
+  margin-left: 4px;
+  font-size: @fs-sm;
+  color: @on-ink;
+  font-weight: 600;
+}
+
+/* ===== empty ===== */
+.messages-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px @sp-6 0;
+  text-align: center;
+}
+
+.empty-title {
+  margin-top: @sp-4;
+  font-size: @fs-lg;
+  color: @ink;
+  font-weight: 600;
+}
+
+.empty-sub {
+  margin-top: @sp-2;
+  font-size: @fs-sm;
+  color: @ink-mute;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}

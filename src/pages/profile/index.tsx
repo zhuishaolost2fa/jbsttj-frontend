@@ -18,6 +18,7 @@ import {
   searchScriptByName,
   type ScriptItemCamel,
 } from '../../services/script'
+import { fetchUnreadCount } from '../../services/messages'
 import type { UploadResult } from '../../utils/ossMultipartUpload'
 import { formatBytes } from '../../utils/format'
 import { MAX_FILE_SIZE, SIMPLE_UPLOAD_MAX_SIZE } from '../../constants/upload'
@@ -39,6 +40,18 @@ function ProfilePage() {
     '管理账号资料，导入 DM 主持人手册共建知识库，查看我的剧本与求解析进度。'
   );
   const { status, user, isAuthenticated, logout } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  // 切回页面时拉未读数：未登录/失败都按 0 处理，绝不影响主菜单渲染
+  useDidShow(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0)
+      return
+    }
+    void fetchUnreadCount()
+      .then((n) => setUnreadCount(Number(n) || 0))
+      .catch((err) => console.warn('[profile] 拉未读数失败:', err))
+  })
 
   // 导入 DM 指南后「匹配剧本 → 填表 → 提交」流程的上下文
   const [submitVisible, setSubmitVisible] = useState(false)
@@ -235,6 +248,17 @@ function ProfilePage() {
 
       {/* ===== 功能入口 ===== */}
       <View className='menu-group'>
+        <View
+          className='menu-item'
+          onClick={() => Taro.navigateTo({ url: '/pages/messages/index' })}
+        >
+          <AppIcon name='inbox' tone='ink' size={18} className='menu-icon' />
+          <Text className='menu-label'>消息</Text>
+          {unreadCount > 0 ? (
+            <Text className='menu-badge'>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+          ) : null}
+          <AppIcon name='chevron-right' tone='mute' size={16} className='menu-arrow' />
+        </View>
         <View
           className='menu-item'
           onClick={() => Taro.navigateTo({ url: '/pages/myScripts/index' })}

@@ -37,6 +37,14 @@ export const AUTH_PATH = {
    * 这条路由必须在前端收验证码，效果与点开验证链接等价。
    */
   verifyEmail: '/auth/verify-email',
+  /**
+   * POST /auth/resend-email：重发邮件验证码。
+   *
+   * 不能复用 register —— GoTrue 对**已存在的邮箱**调 /signup 会返回 200 但
+   * 不发信（防用户枚举的模糊响应），点「重发」等于什么都没发生，用户永远
+   * 等不到邮件。重发必须走 GoTrue 的 /resend 端点。
+   */
+  resendEmail: '/auth/resend-email',
 } as const
 
 /**

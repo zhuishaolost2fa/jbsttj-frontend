@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { useAuth } from '../../store/auth'
 import { toFriendlyMessage } from '../../services/auth'
+import { ApiError } from '../../services/request'
 import {
   EMAIL_OTP_LENGTH,
   HOME_PAGE,
@@ -64,13 +65,6 @@ function Login() {
   /** 小程序端且未切到「邮箱密码」时，只渲染微信一键登录 */
   const showWechat = IS_WEAPP && entry === 'wechat'
   const showPasswordForm = !showWechat && !isVerify
-
-  /**
-   * 注册时的密码快照。
-   * 重发验证码要再调一次 register（后端 password 必填），进 verify 视图后
-   * 表单已被隐藏，不清掉用户还能改，得单独留一份。
-   */
-  const pendingPassword = useRef('')
 
   /** 登录成功后的去向：优先回到来源页 */
   const redirect = useMemo(() => {
@@ -148,6 +142,12 @@ function Login() {
       Taro.showToast({ title: '验证成功', icon: 'success' })
       setTimeout(goAfterAuth, 400)
     } catch (err) {
+      // 邮箱其实早就验证过了（用户拿旧邮件里的码来兑）：回登录表单而不是干等
+      if (err instanceof ApiError && err.code === 'email_already_verified') {
+        setMode('login')
+        setOtp('')
+        setCountdown(0)
+      }
       setErrorMsg(toFriendlyMessage(err))
     } finally {
       setSubmitting(false)
@@ -166,10 +166,17 @@ function Login() {
     setSubmitting(true)
 
     try {
-      await resendSignupCode(email, pendingPassword.current)
+      await resendSignupCode(email)
       setCountdown(RESEND_COOLDOWN_SECONDS)
       setNoticeMsg(`验证码已重新发送，请查收 ${email.trim()}`)
     } catch (err) {
+      // 邮箱早就验证过了：继续待在验证码页没意义，直接把人送回登录表单
+      if (err instanceof ApiError && err.code === 'email_already_verified') {
+        setMode('login')
+        setOtp('')
+        setCountdown(0)
+        setNoticeMsg('')
+      }
       setErrorMsg(toFriendlyMessage(err))
     } finally {
       setSubmitting(false)
@@ -216,7 +223,6 @@ function Login() {
           setTimeout(goAfterAuth, 600)
         } else {
           // 开启了邮箱验证：切到验证码视图，验证完直接就有登录态，不用再登一次
-          pendingPassword.current = password
           setNoticeMsg(result.message)
           setMode('verify')
           setOtp('')
@@ -230,6 +236,12 @@ function Login() {
         setTimeout(goAfterAuth, 400)
       }
     } catch (err) {
+      // 已注册且已验证的邮箱再注册，后端会拦成 409 —— 引导去登录，别停在注册页
+      if (err instanceof ApiError && err.code === 'email_already_verified') {
+        setMode('login')
+        setOtp('')
+        setCountdown(0)
+      }
       setErrorMsg(toFriendlyMessage(err))
     } finally {
       setSubmitting(false)

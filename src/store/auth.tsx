@@ -36,8 +36,8 @@ interface AuthContextValue {
    * 邮件里没有可点链接（腾讯云模板审核限制），所以这一步不可省。
    */
   verifyEmail: (email: string, code: string, type?: authApi.OtpType) => Promise<AuthSession>
-  /** 重发注册验证码（内部再次调用 register，故需要密码） */
-  resendSignupCode: (email: string, password: string) => Promise<void>
+  /** 重发注册验证码（走独立的 /auth/resend-email，不需要密码） */
+  resendSignupCode: (email: string, type?: authApi.OtpType) => Promise<void>
   /** 微信小程序一键登录。非小程序环境会抛 unsupported_env */
   loginWithWechat: () => Promise<AuthSession>
   /** 把微信绑到当前账号上（需登录态，不建新账号）。非小程序环境会抛 unsupported_env */
@@ -162,7 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const resendSignupCode = useCallback(
-    (email: string, password: string) => authApi.resendSignupCode(email, password),
+    (email: string, type: authApi.OtpType = 'signup') =>
+      authApi.resendSignupCode(email, type),
     []
   )
 

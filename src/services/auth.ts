@@ -115,6 +115,10 @@ export function toFriendlyMessage(err: unknown): string {
     // 绑定场景的结构化错误码
     if (err.code === 'wechat_already_bound') return '该微信已绑定到其他账号，请先解绑或直接登录那个账号'
     if (err.code === 'email_taken') return '该邮箱已被其他账号使用，请换一个'
+    // 邮箱早就验证过了（或已注册），再注册/重发/兑码都会被后端拦成 409
+    if (err.code === 'email_already_verified') {
+      return '该邮箱已注册并完成验证，请直接登录'
+    }
     // Supabase 内置 SMTP 限流很紧（约 60 秒 1 封），绑定邮箱时最容易撞上
     if (err.code === 'over_email_send_rate_limit') return '发送过于频繁，请稍后再试'
     // 自建发信通道后的统一限流码（见后端 app/core/exceptions.py），
@@ -197,15 +201,22 @@ export async function verifyEmail(
 /**
  * 重发注册验证码。
  *
- * 实现就是再调一次 register —— GoTrue 对「已注册但未验证」的用户会重新签发
- * 验证码并覆盖旧的，这正是我们想要的行为。代价是必须带上密码（后端
- * RegisterRequest 的 password 是必填），所以刷新页面后只能回注册表单重来。
+ * ⚠️ 不能用「再调一次 register」来实现：GoTrue 对**已存在的邮箱**调 /signup
+ * 会返回 200 但**不发信**（防用户枚举的模糊响应），表现为点了重发什么都没
+ * 发生。真正的重发是 GoTrue 的 /resend，后端已单独暴露成 /auth/resend-email。
+ *
+ * 顺带的好处：不再需要密码，刷新页面后也能继续重发。
  */
 export async function resendSignupCode(
   email: string,
-  password: string
+  type: OtpType = 'signup'
 ): Promise<void> {
-  await register(email, password)
+  await request<{ message: string }>({
+    url: AUTH_PATH.resendEmail,
+    method: 'POST',
+    data: { email: email.trim(), type },
+    auth: false,
+  })
 }
 
 /** 邮箱密码登录，成功后写入全局会话 */

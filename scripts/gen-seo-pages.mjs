@@ -50,10 +50,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
 
+// ⚠️ 默认值必须是自建服务器，不能用 Railway。
+// 项目 2026-09-11 已迁到腾讯云自建（Railway 仅保留为回滚后路），而 Railway 上的
+// 旧服务已下线：gen:seo 请求它会拿到 404 → 「未拉到任何剧本，跳过静态页生成」→
+// 但脚本仍 exit(0)，CI 全程绿灯，静态页就一直沿用旧版（2026-09-15 才发现停在 09-09）。
 const API_ORIGIN =
   process.env.TARO_APP_API_ORIGIN ||
   process.env.SEO_API_ORIGIN ||
-  "https://jbsttj-backend-production.up.railway.app";
+  "https://www.jbs-ttj.store";
 const API_BASE = `${API_ORIGIN.replace(/\/$/, "")}/api/v1`;
 
 /** 站点正式域名（写进 canonical / sitemap / robots 的绝对地址，不带尾斜杠） */

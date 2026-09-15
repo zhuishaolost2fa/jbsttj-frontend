@@ -66,6 +66,13 @@ const BRAND = {
   desc: "导入 DM 主持人手册并向 AI 提问，快速查证剧本杀的玩法、剧情、线索与真相还原。",
 };
 
+// ICP 备案：域名完成备案后必须在页面底部悬挂备案号并链接工信部（腾讯云会抽查）。
+// 2026-09-15 备案通过。改这里即可全站静态页生效（H5/小程序的备案号在 AppFooter 组件里）。
+const ICP = {
+  no: "浙ICP备2026072486号",
+  url: "https://beian.miit.gov.cn/",
+};
+
 const MAX_QA_PER_SCRIPT = Number(process.env.SEO_MAX_QA || 200);
 /** JSON-LD FAQPage 里放的条数（HTML 里可放更多，结构化数据控制体积） */
 const MAX_FAQ_IN_LD = 30;
@@ -486,6 +493,7 @@ details.spoiler .body{padding-bottom:14px}
 .btn:hover{text-decoration:none;opacity:.92}
 footer.site{border-top:1px solid var(--line);padding:24px 0;color:var(--sub);font-size:13px}
 footer.site a{color:var(--sub)}
+footer.site .beian{margin-top:8px}
 .breadcrumb{font-size:13px;color:var(--sub);margin:0 0 14px}
 .breadcrumb a{color:var(--sub)}
 .updated{font-size:13px;color:#8a93a3;margin-top:6px}
@@ -510,6 +518,7 @@ ${body}
   <div class="wrap">
     <p>${esc(BRAND.name)} · ${esc(BRAND.desc)}</p>
     <p><a href="/">首页</a> · <a href="/scripts/">剧本库</a> · <a href="/sitemap.xml">站点地图</a> · <a href="/llms.txt">llms.txt</a></p>
+    <p class="beian">${esc(ICP.no)} · <a href="${ICP.url}" target="_blank" rel="noopener">工信部备案查询</a></p>
   </div>
 </footer>
 ${jsonLdBlocks.map((b) => `<script type="application/ld+json">${b}</script>`).join("\n")}

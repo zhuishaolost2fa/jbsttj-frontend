@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text } from "@tarojs/components";
 import Taro, { usePullDownRefresh, useDidShow } from "@tarojs/taro";
 import AppSearchBar from "../../components/AppSearchBar";
+import AppFooter from "../../components/AppFooter";
 import {
   fetchScriptList,
   type ScriptItemCamel,
@@ -532,6 +533,8 @@ function ScriptLibraryPage() {
           </View>
         </View>
       ) : null}
+
+      <AppFooter />
     </View>
   );
 }

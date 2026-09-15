@@ -11,6 +11,7 @@ import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { goLogin, useAuth } from '../../store/auth'
 import AppButton from '../../components/AppButton'
+import AppFooter from '../../components/AppFooter'
 import Avatar from '../../components/Avatar'
 import ImportDmGuide from '../../components/ImportDmGuide'
 import ScriptSubmitForm, { deriveScriptName } from '../../components/ScriptSubmitForm'
@@ -320,6 +321,7 @@ function ProfilePage() {
       ) : null}
 
       <Text className='foot-hint'>复盘含剧透，未玩过的本请勿查看</Text>
+      <AppFooter />
     </View>
   )
 }

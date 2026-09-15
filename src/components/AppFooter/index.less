@@ -1,0 +1,33 @@
+@import '../../styles/tokens.less';
+
+/* 全站页脚：ICP 备案号（合规要求，见 index.tsx 注释）
+ *
+ * 样式跟着 profile 页的 .foot-hint 走：block + text-align，
+ * 不用 flex column —— 小程序端对 flex 的部分属性支持不完整，block 更稳。
+ */
+
+.app-footer {
+  margin-top: @sp-6;
+  padding-bottom: @sp-4;
+  text-align: center;
+}
+
+.app-footer__no {
+  display: block;
+  font-size: @fs-xs;
+  line-height: 1.6;
+  color: @ink-faint;
+}
+
+.app-footer__link {
+  display: block;
+  margin-top: @sp-1;
+  font-size: @fs-xs;
+  line-height: 1.6;
+  color: @ink-mute;
+  text-decoration: underline;
+
+  &:active {
+    color: @ink;
+  }
+}
